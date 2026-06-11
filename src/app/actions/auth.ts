@@ -147,6 +147,24 @@ export async function updateUserProfile(fullName: string, phone: string, email: 
   return { success: true };
 }
 
+export async function verifyCurrentPassword(password: string) {
+  const session = await getSession();
+  if (!session) return { error: 'Not authenticated' };
+
+  const { data: user, error: fetchError } = await supabase
+    .from('users')
+    .select('password_hash')
+    .eq('id', session.userId)
+    .single();
+
+  if (fetchError || !user) return { error: 'User not found' };
+
+  const isValid = await bcrypt.compare(password, user.password_hash);
+  if (!isValid) return { error: 'Incorrect password' };
+
+  return { success: true };
+}
+
 export async function changeUserPassword(formData: FormData) {
   const session = await getSession();
   if (!session) return { error: 'Not authenticated' };

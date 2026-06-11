@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { updateUserProfile, changeUserPassword } from '@/app/actions/auth';
+import { updateUserProfile, changeUserPassword, verifyCurrentPassword } from '@/app/actions/auth';
 
 interface SettingsClientProps {
   user: {
@@ -43,10 +43,15 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Password Change State
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  
+  // Verification State
+  const [verifyAction, setVerifyAction] = useState<'profile' | 'password' | null>(null);
+  const [verifyPassword, setVerifyPassword] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
   
   // Preferences State
   const [emailNotifications, setEmailNotifications] = useState(() => {
@@ -67,8 +72,7 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
     router.push(`/dashboard/settings?tab=${tabId}`);
   };
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeProfileUpdate = async () => {
     setProfileLoading(true);
     setProfileMessage(null);
 
@@ -79,6 +83,36 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
       setProfileMessage({ type: 'success', text: 'Profile updated successfully.' });
     }
     setProfileLoading(false);
+  };
+
+  const handleUpdateProfileClick = (e: React.FormEvent) => {
+    e.preventDefault();
+    setVerifyAction('profile');
+    setVerifyPassword('');
+    setVerifyError('');
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setVerifyLoading(true);
+    setVerifyError('');
+    
+    const res = await verifyCurrentPassword(verifyPassword);
+    if (res?.error) {
+      setVerifyError(res.error);
+      setVerifyLoading(false);
+      return;
+    }
+    
+    setVerifyLoading(false);
+    
+    if (verifyAction === 'profile') {
+      setVerifyAction(null);
+      await executeProfileUpdate();
+    } else if (verifyAction === 'password') {
+      setVerifyAction(null);
+      setPasswordOpen(true);
+    }
   };
 
   const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -144,7 +178,7 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
         {activeTab === 'personal' && (
           <div className="p-6">
             <h3 className="text-lg font-bold tracking-tight mb-6">Personal Information</h3>
-            <form onSubmit={handleUpdateProfile} className="space-y-6">
+            <form onSubmit={handleUpdateProfileClick} className="space-y-6">
               {profileMessage && (
                 <div
                   className={`p-3 rounded-md text-sm font-medium ${
@@ -245,12 +279,18 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
                   Update your password to keep your account secure.
                 </p>
               </div>
-              <Dialog open={passwordOpen} onOpenChange={setPasswordOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline">
-                    Change Password
-                  </Button>
-                </DialogTrigger>
+              <div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setVerifyAction('password');
+                    setVerifyPassword('');
+                    setVerifyError('');
+                  }}
+                >
+                  Change Password
+                </Button>
+              </div>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Change Password</DialogTitle>
@@ -264,16 +304,7 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
                         {passwordError}
                       </div>
                     )}
-                    <div className="space-y-2">
-                      <Label htmlFor="currentPassword">Current Password</Label>
-                      <Input
-                        id="currentPassword"
-                        name="currentPassword"
-                        type="password"
-                        placeholder="Enter current password"
-                        required
-                      />
-                    </div>
+                    <input type="hidden" name="currentPassword" value={verifyPassword} />
                     <div className="space-y-2">
                       <Label htmlFor="newPassword">New Password</Label>
                       <Input
@@ -383,7 +414,60 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
             </div>
           </div>
         )}
+          </div>
+        )}
       </div>
+
+      {/* Verification Modal */}
+      <Dialog open={verifyAction !== null} onOpenChange={(open) => !open && setVerifyAction(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <form onSubmit={handleVerify}>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-emerald-500" />
+                Verify Password
+              </DialogTitle>
+              <DialogDescription>
+                Please enter your current password to verify your identity.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              {verifyError && (
+                <div className="p-3 rounded-md text-sm bg-destructive/10 text-destructive border border-destructive/20">
+                  {verifyError}
+                </div>
+              )}
+              <div className="grid gap-2">
+                <Input
+                  id="verifyPassword"
+                  type="password"
+                  placeholder="Current Password"
+                  value={verifyPassword}
+                  onChange={(e) => setVerifyPassword(e.target.value)}
+                  className="border-emerald-500 focus-visible:ring-emerald-500"
+                  required
+                  autoFocus
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setVerifyAction(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={verifyLoading} className="bg-emerald-500 hover:bg-emerald-600">
+                {verifyLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
