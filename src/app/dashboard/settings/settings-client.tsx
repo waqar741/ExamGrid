@@ -48,8 +48,9 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
   const [passwordError, setPasswordError] = useState('');
   
   // Verification State
-  const [verifyAction, setVerifyAction] = useState<'profile' | 'password' | null>(null);
+  const [verifyAction, setVerifyAction] = useState<'profile' | 'password' | 'email' | 'phone' | 'fullName' | null>(null);
   const [verifyPassword, setVerifyPassword] = useState('');
+  const [newValue, setNewValue] = useState('');
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyError, setVerifyError] = useState('');
   
@@ -72,24 +73,29 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
     router.push(`/dashboard/settings?tab=${tabId}`);
   };
 
-  const executeProfileUpdate = async () => {
+  const executeProfileUpdate = async (newName: string, newPhone: string, newEmail: string) => {
     setProfileLoading(true);
     setProfileMessage(null);
 
-    const res = await updateUserProfile(fullName, phone, email);
+    const res = await updateUserProfile(newName, newPhone, newEmail);
     if (res?.error) {
       setProfileMessage({ type: 'error', text: res.error });
     } else {
+      setFullName(newName);
+      setPhone(newPhone);
+      setEmail(newEmail);
       setProfileMessage({ type: 'success', text: 'Profile updated successfully.' });
     }
     setProfileLoading(false);
   };
 
-  const handleUpdateProfileClick = (e: React.FormEvent) => {
-    e.preventDefault();
-    setVerifyAction('profile');
+  const handleChangeClick = (field: 'email' | 'phone' | 'fullName') => {
+    setVerifyAction(field);
     setVerifyPassword('');
     setVerifyError('');
+    if (field === 'email') setNewValue(email);
+    if (field === 'phone') setNewValue(phone || '');
+    if (field === 'fullName') setNewValue(fullName);
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -106,12 +112,22 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
     
     setVerifyLoading(false);
     
-    if (verifyAction === 'profile') {
-      setVerifyAction(null);
-      await executeProfileUpdate();
-    } else if (verifyAction === 'password') {
+    if (verifyAction === 'password') {
       setVerifyAction(null);
       setPasswordOpen(true);
+    } else if (verifyAction) {
+      const field = verifyAction;
+      setVerifyAction(null);
+      
+      let updatedName = fullName;
+      let updatedPhone = phone;
+      let updatedEmail = email;
+
+      if (field === 'fullName') updatedName = newValue;
+      if (field === 'phone') updatedPhone = newValue;
+      if (field === 'email') updatedEmail = newValue;
+
+      await executeProfileUpdate(updatedName, updatedPhone, updatedEmail);
     }
   };
 
@@ -178,7 +194,7 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
         {activeTab === 'personal' && (
           <div className="p-6">
             <h3 className="text-lg font-bold tracking-tight mb-6">Personal Information</h3>
-            <form onSubmit={handleUpdateProfileClick} className="space-y-6">
+            <div className="space-y-6">
               {profileMessage && (
                 <div
                   className={`p-3 rounded-md text-sm font-medium ${
@@ -193,42 +209,32 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
 
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Your full name"
-                    required
-                  />
+                  <Label>Full Name</Label>
+                  <div className="flex gap-2">
+                    <Input value={fullName} disabled className="bg-slate-50 text-slate-500 font-medium" />
+                    <Button type="button" variant="outline" onClick={() => handleChangeClick('fullName')}>Change</Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Your phone number"
-                  />
+                  <Label>Phone Number</Label>
+                  <div className="flex gap-2">
+                    <Input value={phone || 'No phone'} disabled className="bg-slate-50 text-slate-500 font-medium" />
+                    <Button type="button" variant="outline" onClick={() => handleChangeClick('phone')}>Change</Button>
+                  </div>
                 </div>
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
+                  <Label>Email Address</Label>
+                  <div className="flex gap-2">
+                    <Input value={email} disabled className="bg-slate-50 text-slate-500 font-medium" />
+                    <Button type="button" variant="outline" onClick={() => handleChangeClick('email')}>Change</Button>
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <div className="flex h-10 w-full items-center px-3 rounded-md border bg-slate-50 text-sm text-slate-500">
+                  <Label>Role</Label>
+                  <div className="flex h-10 w-full items-center px-3 rounded-md border bg-slate-50 text-sm text-slate-500 font-medium">
                     <span className="capitalize">{user.role.replace('_', ' ')}</span>
                   </div>
                 </div>
@@ -236,33 +242,15 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
 
               {user.employee_code && (
                 <div className="space-y-2 max-w-[calc(50%-12px)]">
-                  <Label htmlFor="empCode">Employee Code</Label>
+                  <Label>Employee Code</Label>
                   <Input
-                    id="empCode"
-                    type="text"
                     value={user.employee_code}
                     disabled
-                    className="bg-slate-50 text-slate-500"
+                    className="bg-slate-50 text-slate-500 font-medium"
                   />
                 </div>
               )}
-
-              <div className="flex justify-end pt-4 border-t">
-                <Button
-                  type="submit"
-                  disabled={profileLoading}
-                >
-                  {profileLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Changes'
-                  )}
-                </Button>
-              </div>
-            </form>
+            </div>
           </div>
         )}
 
@@ -425,10 +413,12 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Lock className="h-5 w-5 text-emerald-500" />
-                Verify Password
+                {verifyAction === 'password' ? 'Verify Password' : 'Secure Change'}
               </DialogTitle>
               <DialogDescription>
-                Please enter your current password to verify your identity.
+                {verifyAction === 'password' 
+                  ? 'Please enter your current password to verify your identity.' 
+                  : 'Please enter your current password and the new value to securely update your profile.'}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -437,16 +427,32 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
                   {verifyError}
                 </div>
               )}
-              <div className="grid gap-2">
+              
+              {verifyAction !== 'password' && (
+                <div className="grid gap-2">
+                  <Label htmlFor="newValue" className="font-semibold text-slate-700">
+                    New {verifyAction === 'fullName' ? 'Full Name' : verifyAction === 'phone' ? 'Phone Number' : 'Email Address'}
+                  </Label>
+                  <Input
+                    id="newValue"
+                    type={verifyAction === 'email' ? 'email' : verifyAction === 'phone' ? 'tel' : 'text'}
+                    value={newValue}
+                    onChange={(e) => setNewValue(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="grid gap-2 mt-2">
+                <Label htmlFor="verifyPassword">Current Password</Label>
                 <Input
                   id="verifyPassword"
                   type="password"
-                  placeholder="Current Password"
+                  placeholder="Enter your password"
                   value={verifyPassword}
                   onChange={(e) => setVerifyPassword(e.target.value)}
                   className="border-emerald-500 focus-visible:ring-emerald-500"
                   required
-                  autoFocus
                 />
               </div>
             </div>

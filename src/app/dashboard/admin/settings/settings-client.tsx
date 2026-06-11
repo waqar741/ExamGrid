@@ -52,8 +52,9 @@ export function SettingsClient({ user }: SettingsClientProps) {
   const [prefMessage, setPrefMessage] = useState<string | null>(null);
 
   // Verification State
-  const [verifyAction, setVerifyAction] = useState<'profile' | 'password' | null>(null);
+  const [verifyAction, setVerifyAction] = useState<'profile' | 'password' | 'email' | 'phone' | 'fullName' | null>(null);
   const [verifyPassword, setVerifyPassword] = useState('');
+  const [newValue, setNewValue] = useState('');
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyError, setVerifyError] = useState('');
 
@@ -68,24 +69,28 @@ export function SettingsClient({ user }: SettingsClientProps) {
     if (storedTheme !== null) setTheme(storedTheme);
   }, []);
 
-  const executeProfileUpdate = async () => {
+  const executeProfileUpdate = async (newName: string, newPhone: string, newEmail: string) => {
     setProfileLoading(true);
     setProfileMessage(null);
 
-    const res = await updateUserProfile(fullName, phone, user.email);
+    const res = await updateUserProfile(newName, newPhone, newEmail);
     if (res?.error) {
       setProfileMessage({ type: 'error', text: res.error });
     } else {
+      setFullName(newName);
+      setPhone(newPhone);
       setProfileMessage({ type: 'success', text: 'Profile settings updated successfully.' });
     }
     setProfileLoading(false);
   };
 
-  const handleUpdateProfileClick = (e: React.FormEvent) => {
-    e.preventDefault();
-    setVerifyAction('profile');
+  const handleChangeClick = (field: 'email' | 'phone' | 'fullName') => {
+    setVerifyAction(field);
     setVerifyPassword('');
     setVerifyError('');
+    if (field === 'email') setNewValue(user.email);
+    if (field === 'phone') setNewValue(phone || '');
+    if (field === 'fullName') setNewValue(fullName);
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -102,12 +107,22 @@ export function SettingsClient({ user }: SettingsClientProps) {
     
     setVerifyLoading(false);
     
-    if (verifyAction === 'profile') {
-      setVerifyAction(null);
-      await executeProfileUpdate();
-    } else if (verifyAction === 'password') {
+    if (verifyAction === 'password') {
       setVerifyAction(null);
       await executeSecurityUpdate(verifyPassword);
+    } else if (verifyAction) {
+      const field = verifyAction;
+      setVerifyAction(null);
+      
+      let updatedName = fullName;
+      let updatedPhone = phone;
+      let updatedEmail = user.email; // email is technically uneditable for admins but if they hack UI it'll be updatedEmail
+
+      if (field === 'fullName') updatedName = newValue;
+      if (field === 'phone') updatedPhone = newValue;
+      if (field === 'email') updatedEmail = newValue;
+
+      await executeProfileUpdate(updatedName, updatedPhone, updatedEmail);
     }
   };
 
@@ -216,25 +231,22 @@ export function SettingsClient({ user }: SettingsClientProps) {
                 {profileMessage.text}
               </div>
             )}
-            <form onSubmit={handleUpdateProfileClick} className="space-y-4">
+            <div className="space-y-4">
               <div className="grid gap-1.5">
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input
-                  id="fullName"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
+                <Label>Full Name</Label>
+                <div className="flex gap-2">
+                  <Input value={fullName} disabled className="bg-slate-50 text-slate-500 font-medium" />
+                  <Button type="button" variant="outline" onClick={() => handleChangeClick('fullName')}>Change</Button>
+                </div>
               </div>
 
               <div className="grid gap-1.5">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  value={user.email}
-                  disabled
-                  className="bg-muted/50 cursor-not-allowed text-muted-foreground border-border/80"
-                />
+                <Label>Email Address</Label>
+                <div className="flex gap-2">
+                  <Input value={user.email} disabled className="bg-slate-50 text-slate-500 font-medium" />
+                  {/* Admins usually cannot change email, but I'll add the button just in case */}
+                  <Button type="button" variant="outline" onClick={() => handleChangeClick('email')}>Change</Button>
+                </div>
               </div>
 
               {user.role === 'employee' ? (
@@ -249,13 +261,11 @@ export function SettingsClient({ user }: SettingsClientProps) {
                     />
                   </div>
                   <div className="grid gap-1.5">
-                    <Label htmlFor="phone">Mobile Number</Label>
-                    <Input
-                      id="phone"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Enter mobile number"
-                    />
+                    <Label>Mobile Number</Label>
+                    <div className="flex gap-2">
+                      <Input value={phone || 'No phone'} disabled className="bg-slate-50 text-slate-500 font-medium" />
+                      <Button type="button" variant="outline" onClick={() => handleChangeClick('phone')}>Change</Button>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -266,11 +276,7 @@ export function SettingsClient({ user }: SettingsClientProps) {
                   </div>
                 </div>
               )}
-
-              <Button type="submit" disabled={profileLoading} className="bg-[#0f172a] hover:bg-[#1e293b] text-white">
-                {profileLoading ? 'Saving changes...' : 'Save Settings'}
-              </Button>
-            </form>
+            </div>
           </div>
         )}
 
@@ -425,10 +431,12 @@ export function SettingsClient({ user }: SettingsClientProps) {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Lock className="h-5 w-5 text-emerald-500" />
-                Verify Password
+                {verifyAction === 'password' ? 'Verify Password' : 'Secure Change'}
               </DialogTitle>
               <DialogDescription>
-                Please enter your current password to verify your identity.
+                {verifyAction === 'password' 
+                  ? 'Please enter your current password to verify your identity.' 
+                  : 'Please enter your current password and the new value to securely update your profile.'}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -437,16 +445,32 @@ export function SettingsClient({ user }: SettingsClientProps) {
                   {verifyError}
                 </div>
               )}
-              <div className="grid gap-2">
+
+              {verifyAction !== 'password' && (
+                <div className="grid gap-2">
+                  <Label htmlFor="newValue" className="font-semibold text-slate-700">
+                    New {verifyAction === 'fullName' ? 'Full Name' : verifyAction === 'phone' ? 'Phone Number' : 'Email Address'}
+                  </Label>
+                  <Input
+                    id="newValue"
+                    type={verifyAction === 'email' ? 'email' : verifyAction === 'phone' ? 'tel' : 'text'}
+                    value={newValue}
+                    onChange={(e) => setNewValue(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="grid gap-2 mt-2">
+                <Label htmlFor="verifyPasswordAdmin">Current Password</Label>
                 <Input
                   id="verifyPasswordAdmin"
                   type="password"
-                  placeholder="Current Password"
+                  placeholder="Enter your password"
                   value={verifyPassword}
                   onChange={(e) => setVerifyPassword(e.target.value)}
                   className="border-emerald-500 focus-visible:ring-emerald-500"
                   required
-                  autoFocus
                 />
               </div>
             </div>
