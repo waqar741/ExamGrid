@@ -291,6 +291,7 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
                   Change Password
                 </Button>
               </div>
+              <Dialog open={passwordOpen} onOpenChange={setPasswordOpen}>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Change Password</DialogTitle>
