@@ -194,11 +194,6 @@ export function CalendarClient({
             );
           })}
         </div>
-        
-              </div>
-            );
-          })}
-        </div>
       </div>
 
       <div className="hidden md:flex flex-col flex-1 h-full bg-white rounded-xl border shadow-sm overflow-hidden min-h-[calc(100vh-8rem)]">
