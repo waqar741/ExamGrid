@@ -55,9 +55,10 @@ export async function createAdmin(formData: FormData) {
   const session = await getSession();
   if (!session || session.role !== 'super_admin') return { error: 'Unauthorized' };
 
-  const email = formData.get('email') as string;
+  const emailRaw = formData.get('email') as string;
+  const email = emailRaw ? emailRaw.trim().toLowerCase() : '';
   const fullName = formData.get('full_name') as string;
-  const phone = formData.get('phone') as string;
+  const phone = formData.get('phone') as string || '';
   const password = formData.get('password') as string || 'password123';
 
   if (!email || !fullName) return { error: 'Email and Name are required' };

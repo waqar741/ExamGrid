@@ -8,18 +8,33 @@ import { redirect } from 'next/navigation';
 import bcrypt from 'bcryptjs';
 
 export async function login(formData: FormData) {
-  const email = formData.get('email') as string;
+  const emailRaw = formData.get('email') as string;
+  const email = emailRaw ? emailRaw.trim().toLowerCase() : '';
   const password = formData.get('password') as string;
 
   if (!email || !password) {
     return { error: 'Email and password are required' };
   }
 
+  // Check if it's an employee code (no @ symbol)
+  let searchEmail = email;
+  if (!email.includes('@')) {
+    const { data: empData, error: empError } = await supabase
+      .from('employees')
+      .select('users(email)')
+      .eq('employee_code', emailRaw.trim())
+      .single();
+
+    if (empData && empData.users && empData.users.email) {
+      searchEmail = empData.users.email.toLowerCase();
+    }
+  }
+
   // Fetch user from public.users
   const { data: user, error } = await supabase
     .from('users')
     .select('id, email, password_hash, role_id, full_name, is_active, roles(name)')
-    .eq('email', email)
+    .eq('email', searchEmail)
     .single();
 
   if (error || !user) {

@@ -91,7 +91,8 @@ export async function createEmployee(formData: FormData) {
     return { error: 'Unauthorized' };
   }
 
-  const email = formData.get('email') as string;
+  const emailRaw = formData.get('email') as string;
+  const email = emailRaw ? emailRaw.trim().toLowerCase() : '';
   const fullName = formData.get('full_name') as string;
   const phone = formData.get('phone') as string;
   const employeeCode = formData.get('employee_code') as string;
