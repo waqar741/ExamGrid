@@ -1,6 +1,5 @@
 import { getPayRates } from '@/app/actions/pay-rates';
 import { getAllBranches } from '@/app/actions/branches';
-import { getShifts } from '@/app/actions/shifts';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { PayRatesClient } from './pay-rates-client';
@@ -13,7 +12,6 @@ export default async function PayRatesPage() {
 
   const payRates = await getPayRates();
   const branches = await getAllBranches();
-  const shifts = await getShifts();
 
   return (
     <div className="space-y-6">
@@ -26,8 +24,7 @@ export default async function PayRatesPage() {
 
       <PayRatesClient 
         initialData={payRates} 
-        branches={branches} 
-        shifts={shifts} 
+        branches={branches}
       />
     </div>
   );

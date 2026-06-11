@@ -20,10 +20,14 @@ interface EditRateModalProps {
   rate: any;
   status: string;
   branches: any[];
-  shifts: any[];
 }
 
-export function EditRateModal({ rate, status, branches, shifts }: EditRateModalProps) {
+export function EditRateModal({ rate, status, branches }: EditRateModalProps) {
+  const SHIFT_TYPES: Record<string, string> = {
+    'MORNING': 'Morning',
+    'AFTERNOON': 'Afternoon', 
+    'FULL_DAY': 'Full Day'
+  };
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -95,8 +99,8 @@ export function EditRateModal({ rate, status, branches, shifts }: EditRateModalP
             </div>
 
             <div className="grid gap-2">
-              <Label>Shift Template</Label>
-              <Input value={rate.shift_templates?.name} disabled />
+              <Label>Shift Type</Label>
+              <Input value={SHIFT_TYPES[rate.shift_type] || rate.shift_type} disabled />
             </div>
 
             <div className="grid gap-2">

@@ -25,10 +25,14 @@ import { format } from 'date-fns';
 
 interface CreateRateModalProps {
   branches: any[];
-  shifts: any[];
 }
 
-export function CreateRateModal({ branches, shifts }: CreateRateModalProps) {
+export function CreateRateModal({ branches }: CreateRateModalProps) {
+  const SHIFT_TYPES = [
+    { id: 'MORNING', name: 'Morning' },
+    { id: 'AFTERNOON', name: 'Afternoon' },
+    { id: 'FULL_DAY', name: 'Full Day' }
+  ];
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -85,13 +89,13 @@ export function CreateRateModal({ branches, shifts }: CreateRateModalProps) {
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="shift_template_id">Shift Template</Label>
-              <Select name="shift_template_id" required>
+              <Label htmlFor="shift_type">Shift Type</Label>
+              <Select name="shift_type" required>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select shift" />
+                  <SelectValue placeholder="Select shift type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {shifts.map(s => (
+                  {SHIFT_TYPES.map(s => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>

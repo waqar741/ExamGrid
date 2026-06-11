@@ -143,7 +143,7 @@ export async function updateUserProfile(fullName: string, phone: string) {
     new_values: { full_name: fullName, phone }
   }]);
 
-  revalidatePath('/dashboard/admin/settings');
+  revalidatePath('/dashboard/account');
   revalidatePath('/dashboard/profile');
   return { success: true };
 }
@@ -204,5 +204,61 @@ export async function changeUserPassword(formData: FormData) {
   }]);
 
   return { success: true };
+}
+
+export async function getAccountData() {
+  const session = await getSession();
+  if (!session) return null;
+
+  // Get user data
+  const { data: user, error } = await supabase
+    .from('users')
+    .select(`
+      *,
+      roles (name)
+    `)
+    .eq('id', session.userId)
+    .single();
+
+  if (error || !user) return null;
+
+  // Get employee data if applicable
+  let employee = null;
+  if (user.roles?.name === 'employee') {
+    const { data: empData } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+    employee = empData;
+  }
+
+  // Get login history (last 10 logins)
+  const { data: loginHistory } = await supabase
+    .from('audit_logs')
+    .select('*')
+    .eq('user_id', session.userId)
+    .eq('action', 'LOGIN')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  // Get preference data (if stored in localStorage, we'll need to handle client-side)
+  // For now, returning server data only
+
+  return {
+    user: {
+      id: user.id,
+      full_name: user.full_name,
+      email: user.email,
+      role: user.roles?.name || 'employee',
+      is_active: user.is_active,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+      last_login: user.last_login,
+      phone: employee?.phone || '',
+      employee_code: employee?.employee_code || '',
+    },
+    loginHistory: loginHistory || [],
+  };
 }
 

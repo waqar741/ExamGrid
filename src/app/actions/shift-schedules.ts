@@ -275,3 +275,124 @@ export async function archiveShiftSchedule(id: string) {
   revalidatePath('/dashboard/shift-schedule');
   return { success: true };
 }
+
+export async function createBulkSpreadsheetShifts(rows: {
+  employeeId: string;
+  branchId: string;
+  date: string;
+  shiftType: string;
+  notes?: string;
+}[]) {
+  const session = await getSession();
+  if (!session || session.role === 'employee') {
+    return { error: 'Unauthorized' };
+  }
+
+  if (!rows || rows.length === 0) {
+    return { error: 'No rows to process' };
+  }
+
+  // To prevent creating duplicate shift schedules for the same (branch, date, shift_type),
+  // we first group them and find or create them.
+  const shiftMap = new Map<string, string>(); // key -> shiftScheduleId
+
+  for (const row of rows) {
+    const key = `${row.branchId}_${row.date}_${row.shiftType}`;
+    
+    if (!shiftMap.has(key)) {
+      // Find existing
+      const { data: existing } = await supabase
+        .from('shift_schedules')
+        .select('id, required_staff_count')
+        .eq('branch_id', row.branchId)
+        .eq('shift_date', row.date)
+        .eq('shift_type', row.shiftType)
+        .single();
+        
+      if (existing) {
+        shiftMap.set(key, existing.id);
+      } else {
+        const payload = {
+          branch_id: row.branchId,
+          shift_type: row.shiftType,
+          shift_date: row.date,
+          required_staff_count: 1, // Will be incremented or at least 1
+          notes: row.notes || null,
+          created_by: session.userId
+        };
+        
+        const { data: newShift, error } = await supabase
+          .from('shift_schedules')
+          .insert([payload])
+          .select('id')
+          .single();
+          
+        if (newShift) {
+          shiftMap.set(key, newShift.id);
+          
+          await supabase.from('audit_logs').insert([{
+            user_id: session.userId,
+            entity_type: 'shift_schedules',
+            entity_id: newShift.id,
+            action: 'CREATE',
+            new_values: payload
+          }]);
+        }
+      }
+    }
+    
+    // Now we have the shift schedule ID
+    const shiftScheduleId = shiftMap.get(key);
+    if (!shiftScheduleId) continue;
+
+    // Check if assignment already exists
+    const { data: existingAssignment } = await supabase
+      .from('assignments')
+      .select('id')
+      .eq('shift_schedule_id', shiftScheduleId)
+      .eq('employee_id', row.employeeId)
+      .in('assignment_status', ['assigned', 'completed'])
+      .single();
+      
+    if (!existingAssignment) {
+      // We need to insert the assignment
+      // Get Payment Rate based on branch_id and shift_type
+      const { data: rates } = await supabase
+        .from('branch_pay_rates')
+        .select('rate, effective_from, effective_to')
+        .eq('branch_id', row.branchId)
+        .eq('shift_type', row.shiftType)
+        .lte('effective_from', row.date)
+        .order('effective_from', { ascending: false });
+
+      const activeRateData = rates?.find(r => !r.effective_to || r.effective_to >= row.date);
+      const rate = activeRateData ? activeRateData.rate : 0;
+      
+      const { data: newAssignment } = await supabase
+        .from('assignments')
+        .insert([{
+          shift_schedule_id: shiftScheduleId,
+          employee_id: row.employeeId,
+          payment_snapshot: rate,
+          assigned_by: session.userId,
+          assignment_status: 'assigned'
+        }])
+        .select('id')
+        .single();
+        
+      if (newAssignment) {
+        await supabase.from('assignment_history').insert([{
+          assignment_id: newAssignment.id,
+          action_type: 'assigned',
+          new_employee_id: row.employeeId,
+          action_by: session.userId,
+          reason: 'Spreadsheet bulk assignment'
+        }]);
+      }
+    }
+  }
+
+  revalidatePath('/dashboard/shift-schedule');
+  revalidatePath('/dashboard/assignments');
+  return { success: true };
+}

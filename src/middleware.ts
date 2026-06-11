@@ -66,7 +66,14 @@ export async function middleware(request: NextRequest) {
   }
 
   // Update session expiration
-  return await updateSession(request);
+  const response = await updateSession(request);
+  
+  // Prevent browser from caching protected pages to prevent back-button navigation after logout
+  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  response.headers.set('Pragma', 'no-cache');
+  response.headers.set('Expires', '0');
+
+  return response;
 }
 
 export const config = {

@@ -19,10 +19,14 @@ import { EditRateModal } from './edit-rate-modal';
 interface PayRatesClientProps {
   initialData: any[];
   branches: any[];
-  shifts: any[];
 }
 
-export function PayRatesClient({ initialData, branches, shifts }: PayRatesClientProps) {
+export function PayRatesClient({ initialData, branches }: PayRatesClientProps) {
+  const SHIFT_TYPES: Record<string, string> = {
+    'MORNING': 'Morning',
+    'AFTERNOON': 'Afternoon', 
+    'FULL_DAY': 'Full Day'
+  };
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -38,7 +42,7 @@ export function PayRatesClient({ initialData, branches, shifts }: PayRatesClient
   const filteredData = initialData.filter(rate => {
     const matchesSearch = 
       rate.branches?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rate.shift_templates?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      (SHIFT_TYPES[rate.shift_type] || rate.shift_type)?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
@@ -61,7 +65,7 @@ export function PayRatesClient({ initialData, branches, shifts }: PayRatesClient
           className="w-full sm:max-w-sm"
         />
         <div className="w-full sm:w-auto">
-          <CreateRateModal branches={branches} shifts={shifts} />
+          <CreateRateModal branches={branches} />
         </div>
       </div>
 
@@ -91,7 +95,7 @@ export function PayRatesClient({ initialData, branches, shifts }: PayRatesClient
                 return (
                   <TableRow key={rate.id}>
                     <TableCell className="font-medium">{rate.branches?.name}</TableCell>
-                    <TableCell>{rate.shift_templates?.name}</TableCell>
+                    <TableCell>{SHIFT_TYPES[rate.shift_type] || rate.shift_type}</TableCell>
                     <TableCell className="font-bold text-green-600">₹{rate.rate}</TableCell>
                     <TableCell>{format(new Date(rate.effective_from), 'MMM d, yyyy')}</TableCell>
                     <TableCell>
@@ -106,7 +110,7 @@ export function PayRatesClient({ initialData, branches, shifts }: PayRatesClient
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <EditRateModal rate={rate} status={status} branches={branches} shifts={shifts} />
+                      <EditRateModal rate={rate} status={status} branches={branches} />
                     </TableCell>
                   </TableRow>
                 );
@@ -128,7 +132,7 @@ export function PayRatesClient({ initialData, branches, shifts }: PayRatesClient
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="font-semibold">{rate.branches?.name}</div>
-                    <div className="text-sm text-muted-foreground">{rate.shift_templates?.name}</div>
+                    <div className="text-sm text-muted-foreground">{SHIFT_TYPES[rate.shift_type] || rate.shift_type}</div>
                   </div>
                   <Badge variant={
                     status === 'Active' ? 'default' :
@@ -142,7 +146,7 @@ export function PayRatesClient({ initialData, branches, shifts }: PayRatesClient
                   Valid: {format(new Date(rate.effective_from), 'MMM d, yyyy')} - {rate.effective_to ? format(new Date(rate.effective_to), 'MMM d, yyyy') : 'Ongoing'}
                 </div>
                 <div className="mt-2">
-                  <EditRateModal rate={rate} status={status} branches={branches} shifts={shifts} />
+                  <EditRateModal rate={rate} status={status} branches={branches} />
                 </div>
               </div>
             );

@@ -232,22 +232,25 @@ export async function bulkAssignEmployees(shiftScheduleId: string, employeeIds: 
     }
   }
 
-  // Get Schedule to find branch_id
+  // Get Schedule to find branch_id, shift_date, and shift_type
   const { data: schedule } = await supabase.from('shift_schedules').select('branch_id, shift_date, shift_type').eq('id', shiftScheduleId).single();
   if (!schedule) return { error: 'Shift schedule not found' };
 
-  // Get Payment Rate (We now just match the branch rate since shift templates are gone)
-  let query = supabase
+  // Get Payment Rate based on branch_id and shift_type
+  const { data: rates } = await supabase
     .from('branch_pay_rates')
-    .select('rate, effective_to')
+    .select('rate, effective_from, effective_to')
     .eq('branch_id', schedule.branch_id)
+    .eq('shift_type', schedule.shift_type)
     .lte('effective_from', schedule.shift_date)
     .order('effective_from', { ascending: false });
 
-  const { data: rates } = await query;
+  if (!rates) {
+    return { error: 'Failed to fetch payment rates' };
+  }
   
   // Filter for the one where effective_to is null or >= shift_date
-  const activeRateData = rates?.find(r => !r.effective_to || r.effective_to >= schedule.shift_date);
+  const activeRateData = rates.find(r => !r.effective_to || r.effective_to >= schedule.shift_date);
   
   const rate = activeRateData ? activeRateData.rate : 0; // Default to 0 if rate not set
 

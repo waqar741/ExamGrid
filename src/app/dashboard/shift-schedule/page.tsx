@@ -1,5 +1,5 @@
 import { getShiftSchedules } from '@/app/actions/shift-schedules';
-import { getBranches } from '@/app/actions/branches';
+import { getAllBranches } from '@/app/actions/branches';
 import { ShiftScheduleClient } from './shift-schedule-client';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +18,7 @@ export default async function ShiftSchedulePage({
 
   const [shiftsRes, branches] = await Promise.all([
     getShiftSchedules({ page, pageSize: 10, search, branchId, shiftType, startDate, endDate }),
-    getBranches()
+    getAllBranches()
   ]);
 
   return (

@@ -50,7 +50,12 @@ export function Header({ email, role }: HeaderProps) {
   };
 
   const handleSignOut = async () => {
-    await logout();
+    try {
+      await logout();
+    } catch (e) {
+      // ignore redirect error if thrown
+    }
+    window.location.href = '/login';
   };
 
   return (
@@ -89,44 +94,33 @@ export function Header({ email, role }: HeaderProps) {
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-9 w-auto px-3 rounded-md flex items-center gap-2.5 hover:bg-muted border border-border/50">
-              <span className="h-6 w-6 rounded-full bg-[#0f172a] text-white flex items-center justify-center text-[10px] font-bold">
+            <Button variant="ghost" className="relative h-10 w-auto px-3 rounded-md flex items-center gap-3 hover:bg-muted border-none">
+              <span className="h-8 w-8 rounded-md bg-[#1e293b] text-white flex items-center justify-center text-sm font-medium">
                 {email.charAt(0).toUpperCase()}
               </span>
               <div className="text-left hidden sm:block">
-                <p className="text-[11px] font-semibold leading-none text-foreground">{role.replace('_', ' ').toUpperCase()}</p>
-                <p className="text-[9px] text-muted-foreground mt-0.5">{email}</p>
+                <p className="text-[13px] font-medium leading-none text-[#1e293b]">{role.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')}</p>
+                <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase tracking-wider">{role.toUpperCase()}</p>
               </div>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 mt-1.5 bg-card">
-            <DropdownMenuLabel className="text-xs text-muted-foreground font-semibold px-2 py-1.5">My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
+          <DropdownMenuContent align="end" className="w-52 mt-2 p-1.5 bg-white rounded-lg border shadow-sm">
             <DropdownMenuItem 
-              onClick={() => router.push('/dashboard/profile')}
-              className="flex items-center gap-2 w-full cursor-pointer px-2 py-1.5 text-xs text-foreground hover:bg-muted"
+              onClick={() => router.push('/dashboard/account?tab=personal')}
+              className="flex items-center gap-3 w-full cursor-pointer px-3 py-2.5 text-[13px] font-medium text-[#334155] hover:bg-slate-50 rounded-md focus:bg-slate-50"
             >
-              <User className="h-3.5 w-3.5 text-muted-foreground" />
+              <User className="h-4 w-4" />
               <span>My Profile</span>
             </DropdownMenuItem>
+            
+            <DropdownMenuSeparator className="my-1.5" />
+            
             <DropdownMenuItem 
-              onClick={() => router.push('/dashboard/admin/settings')}
-              className="flex items-center gap-2 w-full cursor-pointer px-2 py-1.5 text-xs text-foreground hover:bg-muted"
+              onClick={handleSignOut} 
+              className="flex items-center gap-3 w-full cursor-pointer px-3 py-2.5 text-[13px] font-medium text-red-600 hover:bg-red-50 hover:text-red-700 rounded-md focus:bg-red-50 focus:text-red-700"
             >
-              <Settings className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>Account Settings</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => router.push('/dashboard/profile')}
-              className="flex items-center gap-2 w-full cursor-pointer px-2 py-1.5 text-xs text-foreground hover:bg-muted"
-            >
-              <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-              <span>Change Password</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 w-full cursor-pointer px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10 focus:bg-destructive/10 focus:text-destructive">
-              <LogOut className="h-3.5 w-3.5" />
-              <span>Sign Out</span>
+              <LogOut className="h-4 w-4" />
+              <span>Logout</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

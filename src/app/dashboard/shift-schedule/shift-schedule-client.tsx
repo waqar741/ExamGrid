@@ -76,10 +76,16 @@ export function ShiftScheduleClient({
           <h1 className="text-2xl font-bold tracking-tight">Shift Schedule</h1>
           <p className="text-sm text-muted-foreground">Manage and assign operational shifts</p>
         </div>
-        <Button onClick={() => setIsBulkCreateOpen(true)} className="w-full sm:w-auto flex gap-2">
-          <Plus className="h-4 w-4" />
-          Bulk Create Shifts
-        </Button>
+        <div className="flex w-full sm:w-auto gap-2">
+          <Button variant="outline" onClick={() => router.push('/dashboard/shift-schedule/wizard')} className="flex-1 sm:flex-none gap-2 bg-white">
+            <Plus className="h-4 w-4" />
+            Guided Setup
+          </Button>
+          <Button onClick={() => router.push('/dashboard/shift-schedule/bulk-entry')} className="flex-1 sm:flex-none gap-2 bg-[#0f172a] hover:bg-[#1e293b]">
+            <Plus className="h-4 w-4" />
+            Spreadsheet Entry
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -142,10 +148,11 @@ export function ShiftScheduleClient({
                 <th className="px-6 py-3 font-medium">Date</th>
                 <th className="px-6 py-3 font-medium">Branch</th>
                 <th className="px-6 py-3 font-medium">Shift Type</th>
-                <th className="px-6 py-3 font-medium">Req. Staff</th>
-                <th className="px-6 py-3 font-medium">Assigned</th>
-                <th className="px-6 py-3 font-medium">Attendance</th>
-                <th className="px-6 py-3 font-medium">Payments</th>
+                <th className="px-6 py-3 font-medium text-center">Req. Staff</th>
+                <th className="px-6 py-3 font-medium text-center">Assigned Staff</th>
+                <th className="px-6 py-3 font-medium text-center">Remaining Needed</th>
+                <th className="px-6 py-3 font-medium text-center">Attendance</th>
+                <th className="px-6 py-3 font-medium text-center">Payments</th>
                 <th className="px-6 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
@@ -184,20 +191,28 @@ export function ShiftScheduleClient({
                           </Badge>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
                         <span className="text-sm font-medium">{shift.required_staff_count}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className="text-sm font-medium text-blue-600">
                           {shift.assignments?.filter((a: any) => a.assignment_status === 'assigned' || a.assignment_status === 'completed').length || 0}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className={`text-sm font-bold ${
+                          (shift.required_staff_count - (shift.assignments?.filter((a: any) => a.assignment_status === 'assigned' || a.assignment_status === 'completed').length || 0)) > 0 
+                            ? 'text-orange-600' : 'text-green-600'
+                        }`}>
+                          {Math.max(0, shift.required_staff_count - (shift.assignments?.filter((a: any) => a.assignment_status === 'assigned' || a.assignment_status === 'completed').length || 0))}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
                         <Badge variant="outline">
                           {shift.assignments?.filter((a: any) => a.attendance?.some((at: any) => at.attendance_status === 'present' || at.attendance_status === 'late')).length || 0} / {shift.assignments?.filter((a: any) => a.assignment_status === 'assigned' || a.assignment_status === 'completed').length || 0}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
                         <Badge variant="outline" className="bg-slate-50">
                           {shift.assignments?.filter((a: any) => a.payments?.some((p: any) => p.payment_status === 'paid')).length || 0} Paid
                         </Badge>

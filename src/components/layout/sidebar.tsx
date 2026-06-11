@@ -48,8 +48,7 @@ export function Sidebar({ role, onClose }: SidebarProps) {
   const systemNav = [
     { name: 'Audit Logs', href: '/dashboard/audit-logs', icon: ShieldAlert, superAdminOnly: true },
     { name: 'Admin Management', href: '/dashboard/admin/users', icon: Shield, superAdminOnly: true },
-    { name: 'Settings', href: '/dashboard/admin/settings', icon: Settings },
-    { name: 'Profile', href: '/dashboard/profile', icon: Users },
+    { name: 'Account', href: '/dashboard/account', icon: Users },
   ];
 
   const filterNav = (items: any[]) => {

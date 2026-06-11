@@ -22,7 +22,7 @@ export async function getBranches(options?: {
 
   let queryBuilder = supabase
     .from('branches')
-    .select('*, events(id)', { count: 'exact' })
+    .select('*, shift_schedules(id)', { count: 'exact' })
     .eq('is_active', true);
 
   if (search) {

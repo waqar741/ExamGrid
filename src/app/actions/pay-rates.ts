@@ -9,8 +9,7 @@ export async function getPayRates() {
     .from('branch_pay_rates')
     .select(`
       *,
-      branches (name),
-      shift_templates (name)
+      branches (name)
     `)
     .order('effective_from', { ascending: false });
 
@@ -28,13 +27,17 @@ export async function createPayRate(formData: FormData) {
   }
 
   const branchId = formData.get('branch_id') as string;
-  const shiftTemplateId = formData.get('shift_template_id') as string;
+  const shiftType = formData.get('shift_type') as string;
   const rateStr = formData.get('rate') as string;
   const effectiveFrom = formData.get('effective_from') as string;
   const effectiveTo = formData.get('effective_to') as string;
 
-  if (!branchId || !shiftTemplateId || !rateStr || !effectiveFrom) {
-    return { error: 'Branch, Shift, Rate, and Effective From are required' };
+  if (!branchId || !shiftType || !rateStr || !effectiveFrom) {
+    return { error: 'Branch, Shift Type, Rate, and Effective From are required' };
+  }
+
+  if (!['MORNING', 'AFTERNOON', 'FULL_DAY'].includes(shiftType)) {
+    return { error: 'Invalid shift type' };
   }
 
   const rate = parseFloat(rateStr);
@@ -48,7 +51,7 @@ export async function createPayRate(formData: FormData) {
     .from('branch_pay_rates')
     .select('id')
     .eq('branch_id', branchId)
-    .eq('shift_template_id', shiftTemplateId);
+    .eq('shift_type', shiftType);
     
   if (effectiveTo) {
     // If the new rate has an end date, we check if existing rates start before the new one ends
@@ -62,7 +65,7 @@ export async function createPayRate(formData: FormData) {
 
   const { data: overlapping } = await query.limit(1);
   if (overlapping && overlapping.length > 0) {
-    return { error: 'Overlapping active rate found for this branch and shift combination. Please close the existing rate first.' };
+    return { error: 'Overlapping active rate found for this branch and shift type combination. Please close the existing rate first.' };
   }
 
   // Insert rate
@@ -70,7 +73,7 @@ export async function createPayRate(formData: FormData) {
     .from('branch_pay_rates')
     .insert([{
       branch_id: branchId,
-      shift_template_id: shiftTemplateId,
+      shift_type: shiftType,
       rate,
       effective_from: effectiveFrom,
       effective_to: effectiveTo || null,
@@ -81,7 +84,7 @@ export async function createPayRate(formData: FormData) {
 
   if (error) {
     console.error('Error creating pay rate:', error);
-    return { error: 'Failed to create pay rate' };
+    return { error: 'Failed to create pay rate: ' + error.message };
   }
 
   // Audit log
@@ -90,7 +93,7 @@ export async function createPayRate(formData: FormData) {
     entity_type: 'branch_pay_rates',
     entity_id: newRate.id,
     action: 'CREATE',
-    new_values: { branch_id: branchId, shift_template_id: shiftTemplateId, rate, effective_from: effectiveFrom, effective_to: effectiveTo || null }
+    new_values: { branch_id: branchId, shift_type: shiftType, rate, effective_from: effectiveFrom, effective_to: effectiveTo || null }
   }]);
 
   revalidatePath('/dashboard/pay-rates');
@@ -140,7 +143,7 @@ export async function updatePayRate(id: string, formData: FormData) {
     .from('branch_pay_rates')
     .select('id')
     .eq('branch_id', currentRate.branch_id)
-    .eq('shift_template_id', currentRate.shift_template_id)
+    .eq('shift_type', currentRate.shift_type)
     .neq('id', id);
 
   const checkFrom = updatePayload.effective_from || currentRate.effective_from;
