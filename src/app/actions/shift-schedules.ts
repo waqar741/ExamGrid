@@ -396,3 +396,75 @@ export async function createBulkSpreadsheetShifts(rows: {
   revalidatePath('/dashboard/assignments');
   return { success: true };
 }
+
+export async function requestSelfShift(branchId: string, shiftDate: string, shiftType: string) {
+  const session = await getSession();
+  if (!session || session.role !== 'employee') {
+    return { error: 'Unauthorized. Only employees can request shifts.' };
+  }
+
+  // 1. Get employee ID
+  const { data: empData, error: empErr } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', session.user.id)
+    .single();
+
+  if (empErr || !empData) return { error: 'Employee profile not found.' };
+
+  // 2. Check if schedule already exists
+  let scheduleId;
+  const { data: schedule } = await supabase
+    .from('shift_schedules')
+    .select('id, required_staff_count')
+    .eq('branch_id', branchId)
+    .eq('shift_date', shiftDate)
+    .eq('shift_type', shiftType)
+    .single();
+
+  if (schedule) {
+    scheduleId = schedule.id;
+  } else {
+    // 3. Create schedule if it doesn't exist
+    const { data: newSchedule, error: newErr } = await supabase
+      .from('shift_schedules')
+      .insert({
+        branch_id: branchId,
+        shift_date: shiftDate,
+        shift_type: shiftType,
+        required_staff_count: 1,
+        created_by: session.user.id
+      })
+      .select('id')
+      .single();
+    if (newErr) return { error: newErr.message };
+    scheduleId = newSchedule.id;
+  }
+
+  // 4. Check if already assigned
+  const { data: existingAssignment } = await supabase
+    .from('assignments')
+    .select('id')
+    .eq('shift_schedule_id', scheduleId)
+    .eq('employee_id', empData.id)
+    .single();
+  
+  if (existingAssignment) {
+    return { error: 'You are already assigned to this shift.' };
+  }
+
+  // 5. Create Assignment
+  const { error: assignErr } = await supabase
+    .from('assignments')
+    .insert({
+      shift_schedule_id: scheduleId,
+      employee_id: empData.id,
+      assignment_status: 'assigned',
+      assigned_by: session.user.id
+    });
+  
+  if (assignErr) return { error: assignErr.message };
+
+  revalidatePath('/dashboard/calendar');
+  return { success: true };
+}

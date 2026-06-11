@@ -2,6 +2,9 @@ import { getShiftSchedules } from '@/app/actions/shift-schedules';
 import { getAllBranches } from '@/app/actions/branches';
 import { ShiftScheduleClient } from './shift-schedule-client';
 
+import { getSession } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+
 export const dynamic = 'force-dynamic';
 
 export default async function ShiftSchedulePage({
@@ -9,6 +12,8 @@ export default async function ShiftSchedulePage({
 }: {
   searchParams: Promise<{ page?: string; search?: string; branch?: string; shift?: string; startDate?: string; endDate?: string }>
 }) {
+  const session = await getSession();
+  if (!session || session.role === 'employee') redirect('/dashboard');
   const resolvedParams = await searchParams;
   const page = resolvedParams.page ? parseInt(resolvedParams.page) : 1;
   const search = resolvedParams.search || '';

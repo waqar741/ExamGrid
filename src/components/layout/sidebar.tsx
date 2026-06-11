@@ -32,7 +32,7 @@ export function Sidebar({ role, onClose }: SidebarProps) {
   const mainNav = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
-    { name: 'Shift Schedule', href: '/dashboard/shift-schedule', icon: CalendarDays },
+    { name: 'Shift Schedule', href: '/dashboard/shift-schedule', icon: CalendarDays, adminOnly: true },
     { name: 'Employees', href: '/dashboard/employees', icon: Users, adminOnly: true },
   ];
 

@@ -11,7 +11,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { EventDayModal } from './event-day-modal';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { RequestShiftModal } from './request-shift-modal';
+import { ChevronLeft, ChevronRight, CalendarPlus } from 'lucide-react';
 
 interface CalendarClientProps {
   initialEvents: any[];
@@ -32,6 +33,7 @@ export function CalendarClient({
 }: CalendarClientProps) {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -124,13 +126,13 @@ export function CalendarClient({
           </button>
         </div>
 
-        {/* Branch filter for mobile */}
-        <div className="mb-6">
+        {/* Branch filter and actions for mobile */}
+        <div className="mb-6 flex gap-2">
           <Select 
             value={selectedBranch} 
             onValueChange={(val) => updateFilters(currentYear, currentMonth, val || 'all')}
           >
-            <SelectTrigger className="w-full bg-white border-slate-200 text-slate-900 focus:ring-1 focus:ring-slate-500 rounded-xl h-12 shadow-sm">
+            <SelectTrigger className="flex-1 bg-white border-slate-200 text-slate-900 focus:ring-1 focus:ring-slate-500 rounded-xl h-12 shadow-sm">
               <span className="flex-1 text-left truncate">
                 {selectedBranch === 'all' ? 'All Branches' : branches.find((b: any) => b.id === selectedBranch)?.name || 'All Branches'}
               </span>
@@ -142,6 +144,15 @@ export function CalendarClient({
               ))}
             </SelectContent>
           </Select>
+          
+          {role === 'employee' && (
+            <Button 
+              onClick={() => setIsRequestModalOpen(true)}
+              className="h-12 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm flex-shrink-0"
+            >
+              <CalendarPlus className="h-5 w-5" />
+            </Button>
+          )}
         </div>
 
         {/* Days of week */}
@@ -274,6 +285,16 @@ export function CalendarClient({
               ))}
             </SelectContent>
           </Select>
+
+          {role === 'employee' && (
+            <Button 
+              onClick={() => setIsRequestModalOpen(true)}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white gap-2"
+            >
+              <CalendarPlus className="h-4 w-4" />
+              Request Shift
+            </Button>
+          )}
         </div>
       </div>
 
@@ -338,6 +359,12 @@ export function CalendarClient({
         }) : []}
         onClose={() => setSelectedDate(null)} 
         role={role}
+      />
+
+      <RequestShiftModal 
+        isOpen={isRequestModalOpen} 
+        onClose={() => setIsRequestModalOpen(false)} 
+        branches={branches} 
       />
     </>
   );
