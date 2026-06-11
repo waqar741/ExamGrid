@@ -58,7 +58,7 @@ export function SettingsClient({ user }: SettingsClientProps) {
     setProfileLoading(true);
     setProfileMessage(null);
 
-    const res = await updateUserProfile(fullName, phone);
+    const res = await updateUserProfile(fullName, phone, user.email);
     if (res?.error) {
       setProfileMessage({ type: 'error', text: res.error });
     } else {

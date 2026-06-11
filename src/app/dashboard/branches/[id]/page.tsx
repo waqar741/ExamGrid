@@ -1,7 +1,7 @@
 import { getBranchById } from '@/app/actions/branches';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { EditBranchModal } from '../edit-branch-modal';
+import { EditBranchAction } from './edit-branch-action';
 import { ArchiveBranchAction } from '../archive-branch-action';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -49,7 +49,7 @@ export default async function BranchViewPage({ params }: { params: { id: string 
         </Link>
         {session.role === 'super_admin' && (
           <div className="flex space-x-2">
-            <EditBranchModal branch={branch} />
+            <EditBranchAction branch={branch} />
             <ArchiveBranchAction branchId={branch.id} />
           </div>
         )}

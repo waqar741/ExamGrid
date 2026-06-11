@@ -243,8 +243,7 @@ export async function getAccountData() {
       updated_at: user.updated_at,
       last_login: user.last_login,
       phone: employee?.phone || '',
-      employee_code: employee?.employee_code || '',
-      created_at: user.created_at
+      employee_code: employee?.employee_code || ''
     }
   };
 }

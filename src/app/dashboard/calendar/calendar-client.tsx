@@ -100,7 +100,7 @@ export function CalendarClient({
 
           <Select 
             value={currentMonth.toString()} 
-            onValueChange={(val) => updateFilters(currentYear, parseInt(val), selectedBranch || 'all')}
+            onValueChange={(val) => updateFilters(currentYear, parseInt(val || '0'), selectedBranch || 'all')}
           >
             <SelectTrigger className="w-[120px] font-semibold">
               <span className="flex-1 text-left truncate">
@@ -116,7 +116,7 @@ export function CalendarClient({
 
           <Select 
             value={currentYear.toString()} 
-            onValueChange={(val) => updateFilters(parseInt(val), currentMonth, selectedBranch || 'all')}
+            onValueChange={(val) => updateFilters(parseInt(val || '0'), currentMonth, selectedBranch || 'all')}
           >
             <SelectTrigger className="w-[90px] font-semibold">
               <span className="flex-1 text-left truncate">

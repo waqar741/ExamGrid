@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export default async function ShiftSchedulePage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; search?: string; branchId?: string; shift?: string; startDate?: string; endDate?: string }>
+  searchParams: Promise<{ page?: string; search?: string; branch?: string; shift?: string; startDate?: string; endDate?: string }>
 }) {
   const resolvedParams = await searchParams;
   const page = resolvedParams.page ? parseInt(resolvedParams.page) : 1;

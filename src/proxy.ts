@@ -4,7 +4,7 @@ import { updateSession, getSession } from '@/lib/auth';
 
 const publicRoutes = ['/login'];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Let Next.js handle static assets and API routes
