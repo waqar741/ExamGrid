@@ -6,7 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { updateUserProfile, changeUserPassword } from '@/app/actions/auth';
+import { updateUserProfile, changeUserPassword, verifyCurrentPassword } from '@/app/actions/auth';
+import { Lock, Loader2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface SettingsClientProps {
   user: {
@@ -42,6 +51,12 @@ export function SettingsClient({ user }: SettingsClientProps) {
   const [theme, setTheme] = useState('system');
   const [prefMessage, setPrefMessage] = useState<string | null>(null);
 
+  // Verification State
+  const [verifyAction, setVerifyAction] = useState<'profile' | 'password' | null>(null);
+  const [verifyPassword, setVerifyPassword] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+
   useEffect(() => {
     // Load local storage preferences if exist
     const storedEmail = localStorage.getItem('pref_email_notify');
@@ -53,8 +68,7 @@ export function SettingsClient({ user }: SettingsClientProps) {
     if (storedTheme !== null) setTheme(storedTheme);
   }, []);
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeProfileUpdate = async () => {
     setProfileLoading(true);
     setProfileMessage(null);
 
@@ -67,19 +81,56 @@ export function SettingsClient({ user }: SettingsClientProps) {
     setProfileLoading(false);
   };
 
-  const handleUpdateSecurity = async (e: React.FormEvent) => {
+  const handleUpdateProfileClick = (e: React.FormEvent) => {
     e.preventDefault();
-    setSecurityLoading(true);
+    setVerifyAction('profile');
+    setVerifyPassword('');
+    setVerifyError('');
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setVerifyLoading(true);
+    setVerifyError('');
+    
+    const res = await verifyCurrentPassword(verifyPassword);
+    if (res?.error) {
+      setVerifyError(res.error);
+      setVerifyLoading(false);
+      return;
+    }
+    
+    setVerifyLoading(false);
+    
+    if (verifyAction === 'profile') {
+      setVerifyAction(null);
+      await executeProfileUpdate();
+    } else if (verifyAction === 'password') {
+      setVerifyAction(null);
+      await executeSecurityUpdate(verifyPassword);
+    }
+  };
+
+  const handleUpdateSecurityClick = (e: React.FormEvent) => {
+    e.preventDefault();
     setSecurityMessage(null);
 
     if (newPassword !== confirmPassword) {
       setSecurityMessage({ type: 'error', text: 'New passwords do not match.' });
-      setSecurityLoading(false);
       return;
     }
 
+    setVerifyAction('password');
+    setVerifyPassword('');
+    setVerifyError('');
+  };
+
+  const executeSecurityUpdate = async (verifiedPassword: string) => {
+    setSecurityLoading(true);
+    setSecurityMessage(null);
+
     const formData = new FormData();
-    formData.append('currentPassword', currentPassword);
+    formData.append('currentPassword', verifiedPassword);
     formData.append('newPassword', newPassword);
     formData.append('confirmPassword', confirmPassword);
 
@@ -165,7 +216,7 @@ export function SettingsClient({ user }: SettingsClientProps) {
                 {profileMessage.text}
               </div>
             )}
-            <form onSubmit={handleUpdateProfile} className="space-y-4">
+            <form onSubmit={handleUpdateProfileClick} className="space-y-4">
               <div className="grid gap-1.5">
                 <Label htmlFor="fullName">Full Name</Label>
                 <Input
@@ -236,20 +287,9 @@ export function SettingsClient({ user }: SettingsClientProps) {
                 {securityMessage.text}
               </div>
             )}
-            <form onSubmit={handleUpdateSecurity} className="space-y-4">
-              <div className="grid gap-1.5">
-                <Label htmlFor="current_password">Current Password</Label>
-                <Input
-                  id="current_password"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="grid gap-1.5">
-                <Label htmlFor="new_password">New Password</Label>
+            <form onSubmit={handleUpdateSecurityClick} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
                 <Input
                   id="new_password"
                   type="password"
@@ -375,7 +415,59 @@ export function SettingsClient({ user }: SettingsClientProps) {
             </div>
           </div>
         )}
+
       </div>
+
+      {/* Verification Modal */}
+      <Dialog open={verifyAction !== null} onOpenChange={(open) => !open && setVerifyAction(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <form onSubmit={handleVerify}>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-emerald-500" />
+                Verify Password
+              </DialogTitle>
+              <DialogDescription>
+                Please enter your current password to verify your identity.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              {verifyError && (
+                <div className="p-3 rounded-md text-sm bg-destructive/10 text-destructive border border-destructive/20">
+                  {verifyError}
+                </div>
+              )}
+              <div className="grid gap-2">
+                <Input
+                  id="verifyPasswordAdmin"
+                  type="password"
+                  placeholder="Current Password"
+                  value={verifyPassword}
+                  onChange={(e) => setVerifyPassword(e.target.value)}
+                  className="border-emerald-500 focus-visible:ring-emerald-500"
+                  required
+                  autoFocus
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setVerifyAction(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={verifyLoading} className="bg-emerald-500 hover:bg-emerald-600">
+                {verifyLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
