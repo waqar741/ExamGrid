@@ -459,7 +459,7 @@ export async function requestSelfShift(branchId: string, shiftDate: string, shif
     .insert({
       shift_schedule_id: scheduleId,
       employee_id: empData.id,
-      assignment_status: 'assigned',
+      assignment_status: 'pending',
       assigned_by: session.user.id
     });
   

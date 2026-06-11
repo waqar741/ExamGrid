@@ -119,7 +119,7 @@ export function RequestShiftModal({ isOpen, onClose, branches }: RequestShiftMod
             </div>
             
             <p className="text-xs text-muted-foreground mt-2">
-              By requesting this shift, you will be automatically assigned to it.
+              Your request will be sent to an Admin for approval.
             </p>
           </div>
 

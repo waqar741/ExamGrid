@@ -26,6 +26,8 @@ import { TablePagination } from '@/components/ui/table-pagination';
 import { useDebounce } from '@/lib/use-debounce';
 import { ReplaceAssignmentModal } from './replace-assignment-modal';
 import { RemoveAssignmentModal } from './remove-assignment-modal';
+import { approveAssignment, rejectAssignment } from '@/app/actions/assignments';
+import { CheckCircle2, XCircle } from 'lucide-react';
 
 interface AssignmentsClientProps {
   initialData: any[];
@@ -141,6 +143,7 @@ export function AssignmentsClient({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all" className="text-xs" label="All Statuses">All Statuses</SelectItem>
+              <SelectItem value="pending" className="text-xs" label="Pending">Pending</SelectItem>
               <SelectItem value="assigned" className="text-xs" label="Assigned">Assigned</SelectItem>
               <SelectItem value="completed" className="text-xs" label="Completed">Completed</SelectItem>
               <SelectItem value="replaced" className="text-xs" label="Replaced">Replaced</SelectItem>
@@ -185,8 +188,9 @@ export function AssignmentsClient({
                     <Badge variant={
                       assignment.assignment_status === 'assigned' ? 'default' :
                       assignment.assignment_status === 'completed' ? 'secondary' :
-                      assignment.assignment_status === 'replaced' ? 'destructive' : 'outline'
-                    } className="text-[10px] capitalize">
+                      assignment.assignment_status === 'replaced' || assignment.assignment_status === 'removed' ? 'destructive' :
+                      assignment.assignment_status === 'pending' ? 'outline' : 'outline'
+                    } className={`text-[10px] capitalize ${assignment.assignment_status === 'pending' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-200' : ''}`}>
                       {assignment.assignment_status}
                     </Badge>
                   </TableCell>
@@ -203,6 +207,28 @@ export function AssignmentsClient({
                           assignmentId={assignment.id}
                           currentEmployeeName={assignment.employees?.users?.full_name}
                         />
+                      </div>
+                    )}
+                    {isAdmin && assignment.assignment_status === 'pending' && (
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-7 text-xs bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 hover:text-emerald-700"
+                          onClick={async () => await approveAssignment(assignment.id)}
+                        >
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Approve
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-7 text-xs bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700"
+                          onClick={async () => await rejectAssignment(assignment.id)}
+                        >
+                          <XCircle className="h-3 w-3 mr-1" />
+                          Reject
+                        </Button>
                       </div>
                     )}
                   </TableCell>

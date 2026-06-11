@@ -401,3 +401,56 @@ export async function removeAssignment(assignmentId: string, reason: string) {
   revalidatePath('/dashboard/shift-schedule/' + currentAssignment.shift_schedule_id);
   return { success: true };
 }
+
+export async function approveAssignment(assignmentId: string) {
+  const session = await getSession();
+  if (!session || session.role === 'employee') {
+    return { error: 'Unauthorized' };
+  }
+
+  const { error } = await supabase
+    .from('assignments')
+    .update({ assignment_status: 'assigned', updated_at: new Date().toISOString() })
+    .eq('id', assignmentId);
+
+  if (error) return { error: error.message };
+
+  // Log in history
+  await supabase.from('assignment_history').insert([{
+    assignment_id: assignmentId,
+    action_type: 'approved',
+    action_by: session.userId,
+    reason: 'Approved by admin'
+  }]);
+
+  revalidatePath('/dashboard/assignments');
+  revalidatePath('/dashboard/calendar');
+  return { success: true };
+}
+
+export async function rejectAssignment(assignmentId: string) {
+  const session = await getSession();
+  if (!session || session.role === 'employee') {
+    return { error: 'Unauthorized' };
+  }
+
+  // To reject, we set it to 'removed'
+  const { error } = await supabase
+    .from('assignments')
+    .update({ assignment_status: 'removed', updated_at: new Date().toISOString() })
+    .eq('id', assignmentId);
+
+  if (error) return { error: error.message };
+
+  // Log in history
+  await supabase.from('assignment_history').insert([{
+    assignment_id: assignmentId,
+    action_type: 'rejected',
+    action_by: session.userId,
+    reason: 'Rejected by admin'
+  }]);
+
+  revalidatePath('/dashboard/assignments');
+  revalidatePath('/dashboard/calendar');
+  return { success: true };
+}
