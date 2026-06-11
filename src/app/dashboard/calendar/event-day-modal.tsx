@@ -84,6 +84,16 @@ export function EventDayModal({ date, events, onClose, role }: EventDayModalProp
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="col-span-2">
+                        <span className="text-muted-foreground block mb-1">Request Status</span>
+                        <Badge variant={
+                          assigned[0]?.assignment_status === 'pending' ? 'outline' :
+                          assigned[0]?.assignment_status === 'assigned' ? 'default' : 'secondary'
+                        } className={assigned[0]?.assignment_status === 'pending' ? 'text-orange-600 border-orange-200 bg-orange-50' : ''}>
+                          {assigned[0]?.assignment_status === 'pending' ? 'Pending Approval' : 
+                           assigned[0]?.assignment_status === 'assigned' ? 'Approved' : 'Completed'}
+                        </Badge>
+                      </div>
                       <div>
                         <span className="text-muted-foreground block mb-1">Attendance Status</span>
                         <Badge variant={
@@ -93,7 +103,7 @@ export function EventDayModal({ date, events, onClose, role }: EventDayModalProp
                         }>
                           {presentCount > 0 ? 'Present' :
                            lateCount > 0 ? 'Late' :
-                           absentCount > 0 ? 'Absent' : 'Pending'}
+                           absentCount > 0 ? 'Absent' : 'Not Marked'}
                         </Badge>
                       </div>
                       <div>

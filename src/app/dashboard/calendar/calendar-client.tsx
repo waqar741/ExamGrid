@@ -76,6 +76,7 @@ export function CalendarClient({
     if (role === 'employee') {
       const myAssignment = assigned[0];
       if (!myAssignment) return 'bg-muted';
+      if (myAssignment.assignment_status === 'pending') return 'bg-orange-500';
       const attStatus = myAssignment.attendance?.[0]?.attendance_status;
       if (attStatus === 'present' || attStatus === 'late') return 'bg-green-500';
       if (attStatus === 'absent') return 'bg-red-500';
