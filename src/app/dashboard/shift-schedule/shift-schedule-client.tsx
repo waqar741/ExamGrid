@@ -32,15 +32,6 @@ export function ShiftScheduleClient({
   const [search, setSearch] = useState(searchQuery);
   const [isBulkCreateOpen, setIsBulkCreateOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const displayData = initialData.length > 0 ? initialData : [{
-    id: 'hardcoded-1',
-    shift_date: new Date().toISOString(),
-    branches: { name: 'Main Branch (Hardcoded)' },
-    shift_type: 'MORNING',
-    required_staff_count: 5,
-  }];
-  const displayTotal = total > 0 ? total : 1;
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -159,14 +150,14 @@ export function ShiftScheduleClient({
               </tr>
             </thead>
             <tbody className="divide-y">
-              {displayData.length === 0 ? (
+              {initialData.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
                     No shift schedules found matching your criteria.
                   </td>
                 </tr>
               ) : (
-                displayData.map((shift: any) => {
+                initialData.map((shift: any) => {
                   return (
                     <tr key={shift.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -246,10 +237,10 @@ export function ShiftScheduleClient({
           </table>
         </div>
         
-        {displayTotal > 10 && (
+        {total > 10 && (
           <div className="flex items-center justify-between px-6 py-4 border-t bg-slate-50/50">
             <span className="text-sm text-muted-foreground">
-              Showing <span className="font-medium text-foreground">{((currentPage - 1) * 10) + 1}</span> to <span className="font-medium text-foreground">{Math.min(currentPage * 10, displayTotal)}</span> of <span className="font-medium text-foreground">{displayTotal}</span>
+              Showing <span className="font-medium text-foreground">{((currentPage - 1) * 10) + 1}</span> to <span className="font-medium text-foreground">{Math.min(currentPage * 10, total)}</span> of <span className="font-medium text-foreground">{total}</span>
             </span>
             <div className="flex gap-2">
               <Button 
@@ -263,7 +254,7 @@ export function ShiftScheduleClient({
               <Button 
                 variant="outline" 
                 size="sm" 
-                disabled={currentPage * 10 >= displayTotal}
+                disabled={currentPage * 10 >= total}
                 onClick={() => updateFilters({ page: currentPage + 1 })}
               >
                 Next

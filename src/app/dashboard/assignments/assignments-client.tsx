@@ -57,15 +57,6 @@ export function AssignmentsClient({
   const [status, setStatus] = useState(initialStatus);
   const debouncedSearch = useDebounce(search, 400);
 
-  const displayData = initialData.length > 0 ? initialData : [{
-    id: 'hardcoded-1',
-    employees: { users: { full_name: 'John Doe (Hardcoded)' } },
-    shift_schedules: { branches: { name: 'Main Branch' }, shift_date: new Date().toISOString(), shift_templates: { name: 'Morning Shift' } },
-    assignment_status: 'assigned',
-    payment_snapshot: '500',
-  }];
-  const displayTotal = totalCount > 0 ? totalCount : 1;
-
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('page', '1');
@@ -114,7 +105,7 @@ export function AssignmentsClient({
     router.push(`/dashboard/assignments?${params.toString()}`);
   };
 
-  const totalPages = Math.ceil(displayTotal / pageSize);
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   return (
     <div className="space-y-4">
@@ -169,14 +160,14 @@ export function AssignmentsClient({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {displayData.length === 0 ? (
+            {initialData.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center h-24 text-muted-foreground text-xs">
                   No assignments found.
                 </TableCell>
               </TableRow>
             ) : (
-              displayData.map((assignment) => (
+              initialData.map((assignment) => (
                 <TableRow key={assignment.id} className="hover:bg-muted/10">
                   <TableCell className="font-medium text-xs">
                     {assignment.employees?.users?.full_name}
@@ -221,7 +212,7 @@ export function AssignmentsClient({
       <TablePagination
         currentPage={currentPage}
         totalPages={totalPages}
-        totalItems={displayTotal}
+        totalItems={totalCount}
         pageSize={pageSize}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
