@@ -415,8 +415,7 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
             </div>
           </div>
         )}
-          </div>
-        )}
+
       </div>
 
       {/* Verification Modal */}
