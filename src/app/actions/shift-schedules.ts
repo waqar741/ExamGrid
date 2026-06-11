@@ -453,13 +453,26 @@ export async function requestSelfShift(branchId: string, shiftDate: string, shif
     return { error: 'You are already assigned to this shift.' };
   }
 
-  // 5. Create Assignment
+  // 5. Get Payment Rate
+  const { data: rates } = await supabase
+    .from('branch_pay_rates')
+    .select('rate, effective_to')
+    .eq('branch_id', branchId)
+    .eq('shift_type', shiftType)
+    .lte('effective_from', shiftDate)
+    .order('effective_from', { ascending: false });
+
+  const activeRateData = rates?.find(r => !r.effective_to || r.effective_to >= shiftDate);
+  const rate = activeRateData ? activeRateData.rate : 0;
+
+  // 6. Create Assignment
   const { error: assignErr } = await supabase
     .from('assignments')
     .insert({
       shift_schedule_id: scheduleId,
       employee_id: empData.id,
       assignment_status: 'pending',
+      payment_snapshot: rate,
       assigned_by: session.userId
     });
   

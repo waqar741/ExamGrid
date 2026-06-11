@@ -48,11 +48,12 @@ export async function getDashboardMetrics() {
         shift_type,
         required_staff_count, 
         branches(name),
-        assignments!inner(id, employee_id)
+        assignments!inner(id, employee_id, assignment_status)
       `)
       .gte('shift_date', today)
       .eq('is_active', true)
       .eq('assignments.employee_id', session.userId)
+      .in('assignments.assignment_status', ['assigned', 'pending'])
       .order('shift_date', { ascending: true })
       .limit(5);
 

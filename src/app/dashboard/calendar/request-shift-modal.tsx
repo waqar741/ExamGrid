@@ -99,7 +99,9 @@ export function RequestShiftModal({ isOpen, onClose, branches }: RequestShiftMod
               <Label htmlFor="branch">Branch</Label>
               <Select value={branchId} onValueChange={(val) => setBranchId(val || '')} required>
                 <SelectTrigger id="branch">
-                  <SelectValue placeholder="Select branch" />
+                  <span className="flex-1 text-left truncate">
+                    {branchId ? branches.find((b: any) => b.id === branchId)?.name : 'Select branch'}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   {branches.map(b => (
@@ -113,7 +115,9 @@ export function RequestShiftModal({ isOpen, onClose, branches }: RequestShiftMod
               <Label htmlFor="shiftType">Shift Type</Label>
               <Select value={shiftType} onValueChange={(val) => setShiftType(val || '')} required>
                 <SelectTrigger id="shiftType">
-                  <SelectValue placeholder="Select shift type" />
+                  <span className="flex-1 text-left truncate">
+                    {shiftType ? SHIFT_TYPES.find((st: any) => st.id === shiftType)?.name : 'Select shift type'}
+                  </span>
                 </SelectTrigger>
                 <SelectContent>
                   {SHIFT_TYPES.map(st => (

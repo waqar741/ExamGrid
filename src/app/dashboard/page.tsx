@@ -63,6 +63,8 @@ export default async function DashboardPage() {
                 {metrics.upcomingEvents.map((ev: any) => {
                   const assigned = ev.assignments?.length || 0;
                   const shortage = ev.required_staff_count > assigned;
+                  const empAssignment = session.role === 'employee' ? ev.assignments?.[0] : null;
+
                   return (
                     <div key={ev.id} className="flex items-center justify-between p-4 px-6">
                       <div>
@@ -70,11 +72,23 @@ export default async function DashboardPage() {
                         <p className="text-sm text-muted-foreground">{format(new Date(ev.shift_date), 'MMM d, yyyy')}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-medium">
-                          {assigned} / {ev.required_staff_count} Staff
-                        </p>
-                        {shortage && (
-                          <span className="text-xs text-destructive">Shortage</span>
+                        {session.role === 'employee' ? (
+                          <div className={`text-xs font-medium px-2 py-1 rounded-full ${
+                            empAssignment?.assignment_status === 'pending' 
+                              ? 'bg-orange-100 text-orange-700' 
+                              : 'bg-emerald-100 text-emerald-700'
+                          }`}>
+                            {empAssignment?.assignment_status === 'pending' ? 'Pending Approval' : 'Approved'}
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-sm font-medium">
+                              {assigned} / {ev.required_staff_count} Staff
+                            </p>
+                            {shortage && (
+                              <span className="text-xs text-destructive">Shortage</span>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
