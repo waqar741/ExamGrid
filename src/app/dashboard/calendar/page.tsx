@@ -21,18 +21,15 @@ export default async function CalendarPage({
   const branches = await getAllBranches();
 
   return (
-    <div className="space-y-6 flex flex-col h-full">
-
-      <div className="flex-1 bg-card border rounded-lg overflow-x-auto flex flex-col">
-        <CalendarClient 
-          initialEvents={events} 
-          branches={branches} 
-          currentYear={year} 
-          currentMonth={month} 
-          selectedBranch={branchId || 'all'} 
-          role={session?.role || 'employee'}
-        />
-      </div>
+    <div className="flex flex-col flex-1 h-[calc(100vh-8rem)]">
+      <CalendarClient 
+        initialEvents={events} 
+        branches={branches} 
+        currentYear={year} 
+        currentMonth={month} 
+        selectedBranch={branchId || 'all'} 
+        role={session?.role || 'employee'}
+      />
     </div>
   );
 }

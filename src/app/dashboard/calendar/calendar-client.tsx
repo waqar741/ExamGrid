@@ -124,6 +124,26 @@ export function CalendarClient({
           </button>
         </div>
 
+        {/* Branch filter for mobile */}
+        <div className="mb-6">
+          <Select 
+            value={selectedBranch} 
+            onValueChange={(val) => updateFilters(currentYear, currentMonth, val || 'all')}
+          >
+            <SelectTrigger className="w-full bg-white border-slate-200 text-slate-900 focus:ring-1 focus:ring-slate-500 rounded-xl h-12 shadow-sm">
+              <span className="flex-1 text-left truncate">
+                {selectedBranch === 'all' ? 'All Branches' : branches.find((b: any) => b.id === selectedBranch)?.name || 'All Branches'}
+              </span>
+            </SelectTrigger>
+            <SelectContent className="bg-white border-slate-200 text-slate-900 rounded-xl">
+              <SelectItem value="all" className="focus:bg-slate-50 focus:text-slate-900 border-b border-slate-100">All Branches</SelectItem>
+              {branches.map(b => (
+                <SelectItem key={b.id} value={b.id} className="focus:bg-slate-50 focus:text-slate-900">{b.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Days of week */}
         <div className="grid grid-cols-7 mb-4">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
@@ -175,28 +195,13 @@ export function CalendarClient({
           })}
         </div>
         
-        {/* Branch filter for mobile */}
-        <div className="mt-8">
-          <Select 
-            value={selectedBranch} 
-            onValueChange={(val) => updateFilters(currentYear, currentMonth, val || 'all')}
-          >
-            <SelectTrigger className="w-full bg-white border-slate-200 text-slate-900 focus:ring-1 focus:ring-slate-500 rounded-xl h-12 shadow-sm">
-              <span className="flex-1 text-left truncate">
-                {selectedBranch === 'all' ? 'All Branches' : branches.find((b: any) => b.id === selectedBranch)?.name || 'All Branches'}
-              </span>
-            </SelectTrigger>
-            <SelectContent className="bg-white border-slate-200 text-slate-900 rounded-xl">
-              <SelectItem value="all" className="focus:bg-slate-50 focus:text-slate-900 border-b border-slate-100">All Branches</SelectItem>
-              {branches.map(b => (
-                <SelectItem key={b.id} value={b.id} className="focus:bg-slate-50 focus:text-slate-900">{b.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="hidden md:flex flex-col bg-white rounded-xl border shadow-sm overflow-hidden">
+      <div className="hidden md:flex flex-col flex-1 h-full bg-white rounded-xl border shadow-sm overflow-hidden min-h-[calc(100vh-8rem)]">
       {/* Header / Filters */}
       <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-b gap-4">
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 w-full sm:w-auto">
