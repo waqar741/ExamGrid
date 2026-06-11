@@ -54,6 +54,19 @@ export function CalendarClient({
     days.push(i);
   }
 
+  const daysInPrevMonth = new Date(currentYear, currentMonth - 1, 0).getDate();
+  const mobileGrid = [];
+  for (let i = firstDayOfMonth - 1; i >= 0; i--) {
+    mobileGrid.push({ day: daysInPrevMonth - i, isCurrentMonth: false });
+  }
+  for (let i = 1; i <= daysInMonth; i++) {
+    mobileGrid.push({ day: i, isCurrentMonth: true });
+  }
+  let nextDay = 1;
+  while (mobileGrid.length < 42) {
+    mobileGrid.push({ day: nextDay++, isCurrentMonth: false });
+  }
+
   const getEventStatusColor = (ev: any) => {
     const assigned = ev.assignments?.filter((a: any) => a.assignment_status !== 'replaced' && a.assignment_status !== 'removed') || [];
     const assignedCount = assigned.length;
@@ -83,6 +96,107 @@ export function CalendarClient({
 
   return (
     <>
+      {/* Light Mobile Calendar */}
+      <div className="md:hidden bg-slate-50 min-h-[calc(100vh-4rem)] p-4 pt-8 font-sans text-slate-900">
+        <div className="flex items-center justify-between mb-8 px-2">
+          <button 
+            onClick={() => {
+              const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+              const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+              updateFilters(prevYear, prevMonth, selectedBranch || 'all');
+            }}
+            className="p-2 text-slate-500 hover:text-slate-900 transition-colors"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <h2 className="text-xl font-bold text-slate-900 tracking-wide">
+            {months[currentMonth - 1]} {currentYear}
+          </h2>
+          <button 
+            onClick={() => {
+              const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+              const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+              updateFilters(nextYear, nextMonth, selectedBranch || 'all');
+            }}
+            className="p-2 text-slate-500 hover:text-slate-900 transition-colors"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Days of week */}
+        <div className="grid grid-cols-7 mb-4">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            <div key={day} className="text-center text-sm font-semibold text-slate-500">
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* Grid */}
+        <div className="grid grid-cols-7 gap-2">
+          {mobileGrid.map((item, idx) => {
+            const today = new Date();
+            const isToday = item.isCurrentMonth && 
+                            today.getDate() === item.day && 
+                            today.getMonth() + 1 === currentMonth && 
+                            today.getFullYear() === currentYear;
+            
+            // Find events for this day to show dots
+            let dayEvents: any[] = [];
+            if (item.isCurrentMonth) {
+              const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`;
+              dayEvents = initialEvents.filter(ev => ev.shift_date === dateStr);
+            }
+            
+            return (
+              <div 
+                key={idx} 
+                onClick={() => {
+                   if (item.isCurrentMonth) setSelectedDate(new Date(currentYear, currentMonth - 1, item.day));
+                }}
+                className={`
+                  aspect-[4/5] flex flex-col items-center justify-center rounded-xl text-sm font-semibold transition-all
+                  ${item.isCurrentMonth ? 'bg-white text-slate-900 hover:bg-slate-50 cursor-pointer shadow-sm border border-slate-200' : 'bg-transparent text-slate-400'}
+                  ${isToday ? 'border-[2px] border-emerald-500 shadow-emerald-100' : ''}
+                `}
+              >
+                <span>{item.day}</span>
+                {item.isCurrentMonth && dayEvents.length > 0 && (
+                  <div className="flex gap-0.5 mt-1">
+                    {dayEvents.slice(0, 3).map(ev => (
+                      <span key={ev.id} className={`w-1.5 h-1.5 rounded-full ${getEventStatusColor(ev)}`}></span>
+                    ))}
+                    {dayEvents.length > 3 && <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Branch filter for mobile */}
+        <div className="mt-8">
+          <Select 
+            value={selectedBranch} 
+            onValueChange={(val) => updateFilters(currentYear, currentMonth, val || 'all')}
+          >
+            <SelectTrigger className="w-full bg-white border-slate-200 text-slate-900 focus:ring-1 focus:ring-slate-500 rounded-xl h-12 shadow-sm">
+              <span className="flex-1 text-left truncate">
+                {selectedBranch === 'all' ? 'All Branches' : branches.find((b: any) => b.id === selectedBranch)?.name || 'All Branches'}
+              </span>
+            </SelectTrigger>
+            <SelectContent className="bg-white border-slate-200 text-slate-900 rounded-xl">
+              <SelectItem value="all" className="focus:bg-slate-50 focus:text-slate-900 border-b border-slate-100">All Branches</SelectItem>
+              {branches.map(b => (
+                <SelectItem key={b.id} value={b.id} className="focus:bg-slate-50 focus:text-slate-900">{b.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="hidden md:flex flex-col bg-white rounded-xl border shadow-sm overflow-hidden">
       {/* Header / Filters */}
       <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-b gap-4">
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 w-full sm:w-auto">
@@ -213,6 +327,7 @@ export function CalendarClient({
             </div>
           );
         })}
+      </div>
       </div>
 
       <EventDayModal 
