@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, Search, Menu, User, LogOut } from 'lucide-react';
+import { Bell, Search, Menu, User, LogOut, Settings, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { logout } from '@/app/actions/auth';
@@ -29,6 +29,7 @@ export function Header({ email, role }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const debouncedGlobalSearch = useDebounce(searchQuery, 400);
   
   // Create a nice title from the pathname
@@ -50,12 +51,11 @@ export function Header({ email, role }: HeaderProps) {
 
   const handleSignOut = async () => {
     await logout();
-    window.location.href = '/login';
   };
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-card px-4 md:px-6 lg:h-[60px]">
-      <Sheet>
+      <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
         <SheetTrigger asChild>
           <Button variant="outline" size="icon" className="shrink-0 md:hidden">
             <Menu className="h-5 w-5" />
@@ -63,7 +63,7 @@ export function Header({ email, role }: HeaderProps) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="p-0 w-64">
-          <Sidebar role={role} />
+          <Sidebar role={role} onClose={() => setIsSidebarOpen(false)} />
         </SheetContent>
       </Sheet>
       <div className="flex-1">
@@ -108,6 +108,20 @@ export function Header({ email, role }: HeaderProps) {
             >
               <User className="h-3.5 w-3.5 text-muted-foreground" />
               <span>My Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => router.push('/dashboard/admin/settings')}
+              className="flex items-center gap-2 w-full cursor-pointer px-2 py-1.5 text-xs text-foreground hover:bg-muted"
+            >
+              <Settings className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>Account Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => router.push('/dashboard/profile')}
+              className="flex items-center gap-2 w-full cursor-pointer px-2 py-1.5 text-xs text-foreground hover:bg-muted"
+            >
+              <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+              <span>Change Password</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 w-full cursor-pointer px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10 focus:bg-destructive/10 focus:text-destructive">

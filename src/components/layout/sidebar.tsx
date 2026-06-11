@@ -23,9 +23,10 @@ import { logout } from '@/app/actions/auth';
 
 interface SidebarProps {
   role: string;
+  onClose?: () => void;
 }
 
-export function Sidebar({ role }: SidebarProps) {
+export function Sidebar({ role, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   const mainNav = [
@@ -78,6 +79,7 @@ export function Sidebar({ role }: SidebarProps) {
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={onClose}
                 className={cn(
                   "flex items-center gap-2.5 rounded-md px-3 py-1.5 text-xs transition-all",
                   isActive ? activeLinkClass : inactiveLinkClass

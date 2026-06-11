@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { TablePagination } from '@/components/ui/table-pagination';
@@ -87,6 +88,7 @@ export function BranchesClient({
             <TableRow>
               <TableHead>Branch Name</TableHead>
               <TableHead>Description</TableHead>
+              <TableHead>Available Shifts</TableHead>
               <TableHead>Created Date</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -103,6 +105,15 @@ export function BranchesClient({
                 <TableRow key={branch.id} className="hover:bg-muted/10">
                   <TableCell className="font-semibold text-xs">{branch.name}</TableCell>
                   <TableCell className="max-w-md truncate text-xs">{branch.description || '-'}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {(branch.available_shift_types || ['MORNING', 'AFTERNOON', 'FULL_DAY']).map((st: string) => (
+                        <Badge key={st} variant="secondary" className="text-[10px] leading-none px-1.5 py-0.5">
+                          {st.replace('_', ' ')}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-xs">
                     {format(new Date(branch.created_at), 'MMM d, yyyy')}
                   </TableCell>
@@ -129,7 +140,14 @@ export function BranchesClient({
             <div key={branch.id} className="flex flex-col gap-2 p-4 border rounded-md bg-card text-xs">
               <div className="font-semibold text-lg">{branch.name}</div>
               <div className="text-sm text-muted-foreground">{branch.description || 'No description'}</div>
-              <div className="text-xs text-muted-foreground">
+              <div className="flex flex-wrap gap-1 mt-1">
+                {(branch.available_shift_types || ['MORNING', 'AFTERNOON', 'FULL_DAY']).map((st: string) => (
+                  <Badge key={st} variant="secondary" className="text-[10px] leading-none px-1.5 py-0.5">
+                    {st.replace('_', ' ')}
+                  </Badge>
+                ))}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
                 Created: {format(new Date(branch.created_at), 'MMM d, yyyy')}
               </div>
               <div className="mt-2">

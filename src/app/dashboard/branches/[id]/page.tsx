@@ -61,12 +61,22 @@ export default async function BranchViewPage({ params }: { params: { id: string 
         )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-xl border bg-card p-6 shadow">
           <h3 className="text-sm font-medium text-muted-foreground mb-1">Status</h3>
           <Badge variant={branch.is_active ? 'default' : 'secondary'}>
             {branch.is_active ? 'Active' : 'Archived'}
           </Badge>
+        </div>
+        <div className="rounded-xl border bg-card p-6 shadow">
+          <h3 className="text-sm font-medium text-muted-foreground mb-1">Shift Configuration</h3>
+          <div className="flex flex-wrap gap-1 mt-2">
+            {(branch.available_shift_types || ['MORNING', 'AFTERNOON', 'FULL_DAY']).map((st: string) => (
+              <Badge key={st} variant="outline" className="text-[10px] leading-none px-1.5 py-0.5">
+                {st.replace('_', ' ')}
+              </Badge>
+            ))}
+          </div>
         </div>
         <div className="rounded-xl border bg-card p-6 shadow">
           <h3 className="text-sm font-medium text-muted-foreground mb-1">Active Events</h3>

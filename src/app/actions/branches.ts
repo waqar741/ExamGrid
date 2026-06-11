@@ -83,12 +83,20 @@ export async function createBranch(formData: FormData) {
 
   const name = formData.get('name') as string;
   const description = formData.get('description') as string;
+  const availableShiftsRaw = formData.get('available_shift_types') as string;
+  
+  let available_shift_types = ['MORNING', 'AFTERNOON', 'FULL_DAY'];
+  if (availableShiftsRaw) {
+    try {
+      available_shift_types = JSON.parse(availableShiftsRaw);
+    } catch(e) {}
+  }
 
   if (!name) return { error: 'Name is required' };
 
   const { data, error } = await supabase
     .from('branches')
-    .insert([{ name, description }])
+    .insert([{ name, description, available_shift_types }])
     .select('id')
     .single();
 
@@ -99,7 +107,7 @@ export async function createBranch(formData: FormData) {
     entity_type: 'branches',
     entity_id: data.id,
     action: 'CREATE',
-    new_values: { name, description }
+    new_values: { name, description, available_shift_types }
   }]);
 
   revalidatePath('/dashboard/branches');
@@ -114,6 +122,14 @@ export async function updateBranch(id: string, formData: FormData) {
 
   const name = formData.get('name') as string;
   const description = formData.get('description') as string;
+  const availableShiftsRaw = formData.get('available_shift_types') as string;
+  
+  let available_shift_types = ['MORNING', 'AFTERNOON', 'FULL_DAY'];
+  if (availableShiftsRaw) {
+    try {
+      available_shift_types = JSON.parse(availableShiftsRaw);
+    } catch(e) {}
+  }
 
   if (!name) return { error: 'Name is required' };
 
@@ -121,7 +137,7 @@ export async function updateBranch(id: string, formData: FormData) {
 
   const { error } = await supabase
     .from('branches')
-    .update({ name, description, updated_at: new Date().toISOString() })
+    .update({ name, description, available_shift_types, updated_at: new Date().toISOString() })
     .eq('id', id);
 
   if (error) return { error: 'Failed to update branch' };
@@ -132,7 +148,7 @@ export async function updateBranch(id: string, formData: FormData) {
     entity_id: id,
     action: 'UPDATE',
     old_values: oldBranch,
-    new_values: { ...oldBranch, name, description }
+    new_values: { ...oldBranch, name, description, available_shift_types }
   }]);
 
   revalidatePath('/dashboard/branches');

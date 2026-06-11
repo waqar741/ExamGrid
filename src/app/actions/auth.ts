@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { encrypt, getSession } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import bcrypt from 'bcryptjs';
 
 export async function login(formData: FormData) {
@@ -67,6 +68,7 @@ export async function login(formData: FormData) {
 export async function logout() {
   const cookieStore = await cookies();
   cookieStore.delete('session');
+  redirect('/login');
 }
 
 export async function getCurrentUser() {
