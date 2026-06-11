@@ -32,15 +32,16 @@ export function EventDayModal({ date, events, onClose, role }: EventDayModalProp
             <p className="text-muted-foreground text-sm">No events scheduled for this day.</p>
           ) : (
             events.map((ev) => {
-              const assigned = ev.assignments?.filter((a: any) => a.assignment_status !== 'replaced' && a.assignment_status !== 'removed') || [];
-              const assignedCount = assigned.length;
+              const allAssigned = ev.assignments || [];
+              const validAssigned = allAssigned.filter((a: any) => a.assignment_status !== 'replaced' && a.assignment_status !== 'removed');
+              const assignedCount = validAssigned.length;
               
               let presentCount = 0;
               let absentCount = 0;
               let lateCount = 0;
               let pendingPaymentAmount = 0;
 
-              assigned.forEach((a: any) => {
+              validAssigned.forEach((a: any) => {
                 const attStatus = a.attendance?.[0]?.attendance_status;
                 if (attStatus === 'present') presentCount++;
                 if (attStatus === 'absent') absentCount++;
@@ -87,11 +88,13 @@ export function EventDayModal({ date, events, onClose, role }: EventDayModalProp
                       <div className="col-span-2">
                         <span className="text-muted-foreground block mb-1">Request Status</span>
                         <Badge variant={
-                          assigned[0]?.assignment_status === 'pending' ? 'outline' :
-                          assigned[0]?.assignment_status === 'assigned' ? 'default' : 'secondary'
-                        } className={assigned[0]?.assignment_status === 'pending' ? 'text-orange-600 border-orange-200 bg-orange-50' : ''}>
-                          {assigned[0]?.assignment_status === 'pending' ? 'Pending Approval' : 
-                           assigned[0]?.assignment_status === 'assigned' ? 'Approved' : 'Completed'}
+                          allAssigned[0]?.assignment_status === 'pending' ? 'outline' :
+                          allAssigned[0]?.assignment_status === 'assigned' ? 'default' : 
+                          allAssigned[0]?.assignment_status === 'removed' ? 'destructive' : 'secondary'
+                        } className={allAssigned[0]?.assignment_status === 'pending' ? 'text-orange-600 border-orange-200 bg-orange-50' : ''}>
+                          {allAssigned[0]?.assignment_status === 'pending' ? 'Pending Approval' : 
+                           allAssigned[0]?.assignment_status === 'assigned' ? 'Approved' : 
+                           allAssigned[0]?.assignment_status === 'removed' ? 'Rejected' : 'Completed'}
                         </Badge>
                       </div>
                       <div>

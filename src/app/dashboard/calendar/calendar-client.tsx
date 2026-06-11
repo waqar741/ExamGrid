@@ -70,24 +70,29 @@ export function CalendarClient({
   }
 
   const getEventStatusColor = (ev: any) => {
-    const assigned = ev.assignments?.filter((a: any) => a.assignment_status !== 'replaced' && a.assignment_status !== 'removed') || [];
-    const assignedCount = assigned.length;
+    const allAssigned = ev.assignments || [];
+    const validAssigned = allAssigned.filter((a: any) => a.assignment_status !== 'replaced' && a.assignment_status !== 'removed');
+    const assignedCount = validAssigned.length;
     
     if (role === 'employee') {
-      const myAssignment = assigned[0];
+      const myAssignment = allAssigned[0];
       if (!myAssignment) return 'bg-muted';
+      
       if (myAssignment.assignment_status === 'pending') return 'bg-orange-500';
+      if (myAssignment.assignment_status === 'removed') return 'bg-red-600'; // Rejected
+      if (myAssignment.assignment_status === 'assigned') return 'bg-emerald-500'; // Approved
+      
       const attStatus = myAssignment.attendance?.[0]?.attendance_status;
       if (attStatus === 'present' || attStatus === 'late') return 'bg-green-500';
       if (attStatus === 'absent') return 'bg-red-500';
       const payStatus = myAssignment.payments?.[0]?.payment_status;
       if (payStatus === 'pending') return 'bg-blue-500';
-      return 'bg-yellow-500';
+      return 'bg-emerald-500';
     }
 
     // Check for pending payments
     let hasPendingPayment = false;
-    assigned.forEach((a: any) => {
+    validAssigned.forEach((a: any) => {
       if (a.payments?.[0]?.payment_status === 'pending') hasPendingPayment = true;
     });
 
