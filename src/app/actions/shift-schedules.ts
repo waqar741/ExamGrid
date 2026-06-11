@@ -407,7 +407,7 @@ export async function requestSelfShift(branchId: string, shiftDate: string, shif
   const { data: empData, error: empErr } = await supabase
     .from('employees')
     .select('id')
-    .eq('user_id', session.user.id)
+    .eq('user_id', session.userId)
     .single();
 
   if (empErr || !empData) return { error: 'Employee profile not found.' };
@@ -433,7 +433,7 @@ export async function requestSelfShift(branchId: string, shiftDate: string, shif
         shift_date: shiftDate,
         shift_type: shiftType,
         required_staff_count: 1,
-        created_by: session.user.id
+        created_by: session.userId
       })
       .select('id')
       .single();
@@ -460,7 +460,7 @@ export async function requestSelfShift(branchId: string, shiftDate: string, shif
       shift_schedule_id: scheduleId,
       employee_id: empData.id,
       assignment_status: 'pending',
-      assigned_by: session.user.id
+      assigned_by: session.userId
     });
   
   if (assignErr) return { error: assignErr.message };

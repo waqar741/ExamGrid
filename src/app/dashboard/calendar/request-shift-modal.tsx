@@ -45,18 +45,23 @@ export function RequestShiftModal({ isOpen, onClose, branches }: RequestShiftMod
     setLoading(true);
     setError('');
 
-    const res = await requestSelfShift(branchId, date, shiftType);
-    
-    setLoading(false);
-    
-    if (res?.error) {
-      setError(res.error);
-    } else {
-      onClose();
-      // Reset form
-      setDate('');
-      setBranchId('');
-      setShiftType('');
+    try {
+      const res = await requestSelfShift(branchId, date, shiftType);
+      
+      setLoading(false);
+      
+      if (res?.error) {
+        setError(res.error);
+      } else {
+        onClose();
+        // Reset form
+        setDate('');
+        setBranchId('');
+        setShiftType('');
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setError(err.message || 'An unexpected error occurred. Please try again.');
     }
   };
 
