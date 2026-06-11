@@ -9,14 +9,19 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createAdmin } from '@/app/actions/admin-users';
+import { editAdmin } from '@/app/actions/admin-users';
 
-export function CreateAdminModal() {
-  const [open, setOpen] = useState(false);
+interface EditAdminModalProps {
+  admin: any;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: (updatedAdmin: any) => void;
+}
+
+export function EditAdminModal({ admin, open, onOpenChange, onSuccess }: EditAdminModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -26,28 +31,33 @@ export function CreateAdminModal() {
     setError('');
 
     const formData = new FormData(e.currentTarget);
-    const res = await createAdmin(formData);
+    const res = await editAdmin(admin.id, formData);
 
     if (res?.error) {
       setError(res.error);
       setLoading(false);
     } else {
-      setOpen(false);
+      // Create updated object for optimistic UI
+      const updatedAdmin = {
+        ...admin,
+        full_name: formData.get('full_name') as string,
+        email: formData.get('email') as string,
+        phone: formData.get('phone') as string,
+      };
+      onSuccess(updatedAdmin);
+      onOpenChange(false);
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>Create Admin</Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create Administrator</DialogTitle>
+            <DialogTitle>Edit Administrator</DialogTitle>
             <DialogDescription>
-              Grant a new user administrative access.
+              Update contact information for {admin.full_name}.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -59,6 +69,7 @@ export function CreateAdminModal() {
               <Input
                 id="full_name"
                 name="full_name"
+                defaultValue={admin.full_name}
                 required
               />
             </div>
@@ -68,6 +79,7 @@ export function CreateAdminModal() {
                 id="email"
                 name="email"
                 type="email"
+                defaultValue={admin.email}
                 required
               />
             </div>
@@ -76,25 +88,26 @@ export function CreateAdminModal() {
               <Input
                 id="phone"
                 name="phone"
+                defaultValue={admin.phone || ''}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password">Temporary Password</Label>
+              <Label htmlFor="password">New Password (Optional)</Label>
               <Input
                 id="password"
                 name="password"
                 type="password"
-                placeholder="password123"
+                placeholder="Leave blank to keep current"
               />
-              <p className="text-[10px] text-muted-foreground">They should change this upon first login.</p>
+              <p className="text-[10px] text-muted-foreground">Only fill this to override their password.</p>
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Admin'}
+              {loading ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </form>

@@ -42,12 +42,6 @@ export default async function AssignmentsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Assignments</h2>
-        <p className="text-muted-foreground">
-          Manage invigilator shift assignments
-        </p>
-      </div>
 
       <AssignmentsClient
         initialData={assignments}

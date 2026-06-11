@@ -1,17 +1,17 @@
 import { getSession } from '@/lib/auth';
 import { getAccountData } from '@/app/actions/auth';
 import { redirect } from 'next/navigation';
-import { AccountClient } from './account-client';
+import { SettingsClient } from './settings-client';
 
 export const metadata = {
-  title: 'Account',
+  title: 'Settings',
 };
 
-interface AccountPageProps {
+interface SettingsPageProps {
   searchParams: Promise<{ tab?: string }>;
 }
 
-export default async function AccountPage({ searchParams }: AccountPageProps) {
+export default async function SettingsPage({ searchParams }: SettingsPageProps) {
   const session = await getSession();
   if (!session) {
     redirect('/login');
@@ -27,16 +27,9 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Account</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage your profile, security settings, preferences, and login activity.
-        </p>
-      </div>
 
-      <AccountClient 
+      <SettingsClient 
         user={accountData.user}
-        loginHistory={accountData.loginHistory}
         initialTab={initialTab}
       />
     </div>

@@ -28,8 +28,8 @@ export async function getAssignments(options?: {
     .from('assignments')
     .select(`
       *,
-      shift_schedules (shift_date, branch_id, shift_type, branches (name)),
-      employees (id, employee_code, phone, users (full_name, email))
+      shift_schedules!inner (shift_date, branch_id, shift_type, branches (name)),
+      employees!inner (id, employee_code, phone, users (full_name, email))
     `, { count: 'exact' });
 
   if (session.role === 'employee') {

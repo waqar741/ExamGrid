@@ -47,12 +47,6 @@ export default async function BranchViewPage({ params }: { params: { id: string 
             <ChevronLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div className="flex-1">
-          <h2 className="text-2xl font-bold tracking-tight">{branch.name}</h2>
-          <p className="text-muted-foreground">
-            {branch.description || 'No description provided.'}
-          </p>
-        </div>
         {session.role === 'super_admin' && (
           <div className="flex space-x-2">
             <EditBranchModal branch={branch} />

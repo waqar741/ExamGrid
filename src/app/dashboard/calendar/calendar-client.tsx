@@ -85,28 +85,58 @@ export function CalendarClient({
     <>
       {/* Header / Filters */}
       <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-b gap-4">
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 w-full sm:w-auto">
           <Button 
             variant="outline" 
             size="icon"
             onClick={() => {
               const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
               const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-              updateFilters(prevYear, prevMonth, selectedBranch);
+              updateFilters(prevYear, prevMonth, selectedBranch || 'all');
             }}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="text-lg font-semibold w-40 text-center">
-            {months[currentMonth - 1]} {currentYear}
-          </div>
+
+          <Select 
+            value={currentMonth.toString()} 
+            onValueChange={(val) => updateFilters(currentYear, parseInt(val), selectedBranch || 'all')}
+          >
+            <SelectTrigger className="w-[120px] font-semibold">
+              <span className="flex-1 text-left truncate">
+                {months[currentMonth - 1] || currentMonth}
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((m, idx) => (
+                <SelectItem key={m} value={(idx + 1).toString()} label={m}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select 
+            value={currentYear.toString()} 
+            onValueChange={(val) => updateFilters(parseInt(val), currentMonth, selectedBranch || 'all')}
+          >
+            <SelectTrigger className="w-[90px] font-semibold">
+              <span className="flex-1 text-left truncate">
+                {currentYear}
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              {[currentYear - 2, currentYear - 1, currentYear, currentYear + 1, currentYear + 2, currentYear + 3].map(y => (
+                <SelectItem key={y} value={y.toString()} label={y.toString()}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Button 
             variant="outline" 
             size="icon"
             onClick={() => {
               const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
               const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
-              updateFilters(nextYear, nextMonth, selectedBranch);
+              updateFilters(nextYear, nextMonth, selectedBranch || 'all');
             }}
           >
             <ChevronRight className="h-4 w-4" />
@@ -119,7 +149,9 @@ export function CalendarClient({
             onValueChange={(val) => updateFilters(currentYear, currentMonth, val || 'all')}
           >
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All Branches" />
+              <span className="flex-1 text-left truncate">
+                {selectedBranch === 'all' ? 'All Branches' : branches.find((b: any) => b.id === selectedBranch)?.name || 'All Branches'}
+              </span>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Branches</SelectItem>
@@ -141,7 +173,7 @@ export function CalendarClient({
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 auto-rows-[120px] divide-x divide-y border-b overflow-y-auto flex-1 min-w-[700px] lg:min-w-0">
+      <div className="grid grid-cols-7 auto-rows-[1fr] divide-x divide-y border-b overflow-hidden flex-1 min-w-[700px] lg:min-w-0">
         {days.map((day, idx) => {
           if (!day) return <div key={`empty-${idx}`} className="bg-muted/10"></div>;
 
@@ -156,25 +188,25 @@ export function CalendarClient({
               className="p-2 flex flex-col hover:bg-muted/5 transition-colors cursor-pointer"
               onClick={() => setSelectedDate(new Date(currentYear, currentMonth - 1, day))}
             >
-              <div className="text-right text-sm font-medium text-muted-foreground mb-1">{day}</div>
-              <div className="flex-1 overflow-y-auto space-y-1 pr-1">
+              <div className="text-right text-[10px] sm:text-xs font-medium text-muted-foreground mb-1">{day}</div>
+              <div className="flex-1 overflow-y-auto space-y-1 pr-1 scrollbar-thin">
                 {dayEvents.map(ev => {
                   const assignedCount = ev.assignments?.filter((a: any) => a.assignment_status !== 'replaced' && a.assignment_status !== 'removed').length || 0;
                   const dotColor = getEventStatusColor(ev);
                   
                   return (
-                    <div 
-                      key={ev.id} 
-                      className="text-xs bg-muted border rounded px-1.5 py-1 flex items-center justify-between"
-                    >
-                      <span className="truncate mr-1 font-medium">{ev.branches?.name} - {ev.shift_templates?.name}</span>
-                      <div className="flex items-center flex-shrink-0 space-x-1.5">
-                        {role !== 'employee' && (
-                          <span className="text-[10px] text-muted-foreground">{assignedCount}/{ev.required_staff_count}</span>
-                        )}
-                        <span className={`w-2 h-2 rounded-full ${dotColor}`}></span>
+                      <div 
+                        key={ev.id} 
+                        className="text-[10px] sm:text-xs bg-muted border rounded px-1 py-0.5 sm:px-1.5 sm:py-1 flex items-center justify-between"
+                      >
+                        <span className="truncate mr-1 font-medium">{ev.branches?.name} - {ev.shift_templates?.name}</span>
+                        <div className="flex items-center flex-shrink-0 space-x-1 sm:space-x-1.5">
+                          {role !== 'employee' && (
+                            <span className="text-[9px] sm:text-[10px] text-muted-foreground">{assignedCount}/{ev.required_staff_count}</span>
+                          )}
+                          <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${dotColor}`}></span>
+                        </div>
                       </div>
-                    </div>
                   );
                 })}
               </div>

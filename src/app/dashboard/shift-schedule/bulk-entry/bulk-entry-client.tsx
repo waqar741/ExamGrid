@@ -104,10 +104,6 @@ export function BulkEntryClient({ branches, employees }: BulkEntryClientProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Bulk Shift Entry</h1>
-          <p className="text-sm text-muted-foreground">Spreadsheet-style bulk entry for rapidly assigning shifts.</p>
-        </div>
         <div className="flex gap-2 w-full sm:w-auto">
           <Button variant="outline" className="w-full sm:w-auto flex gap-2 bg-white">
             <DownloadCloud className="h-4 w-4" />

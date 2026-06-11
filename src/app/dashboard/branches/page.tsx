@@ -19,7 +19,7 @@ export default async function BranchesPage({ searchParams }: PageProps) {
 
   const resolvedParams = await searchParams;
   const page = parseInt(resolvedParams.page || '1', 10);
-  const pageSize = parseInt(resolvedParams.pageSize || '10', 10);
+  const pageSize = parseInt(resolvedParams.pageSize || '15', 10);
   const search = resolvedParams.search || '';
 
   const { data: branches, total } = await getBranches({
@@ -32,12 +32,6 @@ export default async function BranchesPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Branches</h2>
-        <p className="text-muted-foreground">
-          Manage your examination centers
-        </p>
-      </div>
 
       <BranchesClient
         initialData={branches}

@@ -23,12 +23,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Search Results</h2>
-        <p className="text-muted-foreground">
-          Found {totalResults} result{totalResults !== 1 ? 's' : ''} for &quot;{query}&quot;
-        </p>
-      </div>
 
       {totalResults === 0 ? (
         <div className="rounded-xl border bg-card p-12 text-center text-muted-foreground">

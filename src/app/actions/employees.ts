@@ -69,8 +69,11 @@ export async function getEmployeeById(id: string) {
       users (full_name, email),
       assignments (
         id, assignment_status, 
-        events (event_date, branches(name)),
-        shift_templates (name),
+        shift_schedules (
+          shift_date,
+          branches (name),
+          shift_templates (name)
+        ),
         attendance (attendance_status),
         payments (payment_status, amount)
       )
@@ -167,23 +170,31 @@ export async function updateEmployee(id: string, formData: FormData) {
 
   const fullName = formData.get('full_name') as string;
   const phone = formData.get('phone') as string;
+  const email = formData.get('email') as string;
+  const employeeCode = formData.get('employee_code') as string;
+  const password = formData.get('password') as string;
   const status = formData.get('status') as string;
 
-  if (!fullName) return { error: 'Name is required' };
+  if (!fullName || !email || !employeeCode) return { error: 'Name, Email, and Code are required' };
 
   const { data: oldUser } = await supabase.from('users').select('*').eq('id', id).single();
   const { data: oldEmp } = await supabase.from('employees').select('*').eq('id', id).single();
 
+  let userUpdate: any = { full_name: fullName, email, updated_at: new Date().toISOString() };
+  if (password) {
+    userUpdate.password_hash = await bcrypt.hash(password, 10);
+  }
+
   const { error: userError } = await supabase
     .from('users')
-    .update({ full_name: fullName, updated_at: new Date().toISOString() })
+    .update(userUpdate)
     .eq('id', id);
 
   if (userError) return { error: 'Failed to update user record' };
 
   const { error: empError } = await supabase
     .from('employees')
-    .update({ status, phone })
+    .update({ status, phone, employee_code: employeeCode })
     .eq('id', id);
 
   if (empError) return { error: 'Failed to update employee profile' };
@@ -194,11 +205,10 @@ export async function updateEmployee(id: string, formData: FormData) {
     entity_id: id,
     action: 'UPDATE',
     old_values: { ...oldUser, ...oldEmp },
-    new_values: { ...oldUser, ...oldEmp, full_name: fullName, phone, status }
+    new_values: { ...oldUser, ...oldEmp, ...userUpdate, phone, status, employee_code: employeeCode }
   }]);
 
   revalidatePath('/dashboard/employees');
-  revalidatePath(`/dashboard/employees/${id}`);
   return { success: true };
 }
 

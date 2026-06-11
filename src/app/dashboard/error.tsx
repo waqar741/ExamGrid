@@ -20,7 +20,6 @@ export default function DashboardError({
     <div className="flex h-[calc(100vh-4rem)] flex-col items-center justify-center space-y-4">
       <div className="flex flex-col items-center space-y-2 text-center">
         <AlertCircle className="h-10 w-10 text-destructive" />
-        <h2 className="text-2xl font-bold tracking-tight">Something went wrong!</h2>
         <p className="text-muted-foreground max-w-[500px]">
           An unexpected error occurred while loading this page. Our system has logged the error.
         </p>

@@ -15,12 +15,6 @@ export default async function PayRatesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Branch Pay Rates</h2>
-        <p className="text-muted-foreground">
-          Manage shift payment rates across branches.
-        </p>
-      </div>
 
       <PayRatesClient 
         initialData={payRates} 

@@ -8,48 +8,31 @@ import { getAllBranches } from '@/app/actions/branches';
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const session = await getSession();
   if (session?.role === 'employee') redirect('/dashboard');
 
-  const startDate = searchParams.startDate as string;
-  const endDate = searchParams.endDate as string;
-  const branchId = searchParams.branch as string;
+  const resolvedParams = await searchParams;
+  let startDate = resolvedParams.startDate as string;
+  let endDate = resolvedParams.endDate as string;
 
-  const metrics = await getReportMetrics(startDate, endDate, branchId);
-  if (!metrics) return null;
+  if (!startDate || !endDate) {
+    const today = new Date();
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(today.getMonth() - 1);
+    
+    startDate = startDate || oneMonthAgo.toISOString().split('T')[0];
+    endDate = endDate || today.toISOString().split('T')[0];
+  }
+
+  const branchId = resolvedParams.branchId as string;
 
   const branches = await getAllBranches();
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Reports</h2>
-          <p className="text-muted-foreground">
-            View system metrics and export data
-          </p>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border bg-card p-6 shadow">
-          <h3 className="text-sm font-medium tracking-tight mb-2">Total Paid Amount</h3>
-          <div className="text-2xl font-bold text-green-600">₹{metrics.totalPaid}</div>
-        </div>
-        <div className="rounded-xl border bg-card p-6 shadow">
-          <h3 className="text-sm font-medium tracking-tight mb-2">Total Pending Amount</h3>
-          <div className="text-2xl font-bold text-destructive">₹{metrics.totalPending}</div>
-        </div>
-        <div className="rounded-xl border bg-card p-6 shadow">
-          <h3 className="text-sm font-medium tracking-tight mb-2">Attendance Rate</h3>
-          <div className="text-2xl font-bold">{metrics.attendanceRate}%</div>
-        </div>
-        <div className="rounded-xl border bg-card p-6 shadow">
-          <h3 className="text-sm font-medium tracking-tight mb-2">Active Employees</h3>
-          <div className="text-2xl font-bold">{metrics.employeesCount}</div>
-        </div>
       </div>
 
       <ReportsClient 

@@ -32,12 +32,6 @@ export default async function PaymentsPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Payments</h2>
-        <p className="text-muted-foreground">
-          Manage and process invigilator payments
-        </p>
-      </div>
 
       <PaymentsClient
         initialData={payments}

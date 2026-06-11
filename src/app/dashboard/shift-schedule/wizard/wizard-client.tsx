@@ -116,10 +116,7 @@ export function WizardClient({ branches, employees }: WizardClientProps) {
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight text-[#0f172a]">Bulk Shift Wizard</h1>
-        <p className="text-[#64748b] mt-1">Assign the same shift to multiple employees in 3 easy steps.</p>
-      </div>
+
 
       {/* Stepper */}
       <div className="relative mb-12 flex justify-between">

@@ -36,10 +36,6 @@ export function ShiftLedgerClient({ shift, isAdmin }: any) {
         <Button variant="outline" size="icon" onClick={() => router.push('/dashboard/shift-schedule')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Shift Ledger</h1>
-          <p className="text-sm text-muted-foreground">Manage operations for {shift.shift_type} at {branch?.name}</p>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

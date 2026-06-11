@@ -22,8 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-export function EditEmployeeModal({ employee }: { employee: any }) {
-  const [open, setOpen] = useState(false);
+export function EditEmployeeModal({ employee, isOpen, onClose, onUpdate }: { employee: any, isOpen: boolean, onClose: () => void, onUpdate?: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -39,16 +38,14 @@ export function EditEmployeeModal({ employee }: { employee: any }) {
       setError(res.error);
       setLoading(false);
     } else {
-      setOpen(false);
+      onClose();
+      if (onUpdate) onUpdate();
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">Edit</Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
@@ -57,7 +54,7 @@ export function EditEmployeeModal({ employee }: { employee: any }) {
               Update staff details and status.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
             {error && (
               <div className="text-sm text-destructive font-medium">{error}</div>
             )}
@@ -71,11 +68,39 @@ export function EditEmployeeModal({ employee }: { employee: any }) {
               />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                defaultValue={employee.users?.email}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="employee_code">Employee Code</Label>
+              <Input
+                id="employee_code"
+                name="employee_code"
+                defaultValue={employee.employee_code}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="phone">Phone</Label>
               <Input
                 id="phone"
                 name="phone"
                 defaultValue={employee.phone}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">New Password (Optional)</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Leave blank to keep current"
               />
             </div>
             <div className="grid gap-2">
@@ -93,7 +118,7 @@ export function EditEmployeeModal({ employee }: { employee: any }) {
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>

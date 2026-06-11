@@ -32,104 +32,44 @@ interface ReportsClientProps {
 }
 
 const reportTypes = [
-  { value: 'branch-summary', label: 'Branch Summary Report' },
-  { value: 'branch-shift', label: 'Branch Shift Report' },
-  { value: 'branch-payment', label: 'Branch Payment Report' },
-  { value: 'employee-summary', label: 'Employee Summary Report' },
-  { value: 'employee-attendance', label: 'Employee Attendance Report' },
-  { value: 'employee-payment', label: 'Employee Payment Report' },
-  { value: 'assignment-summary', label: 'Assignment Summary Report' },
-  { value: 'assignment-status', label: 'Assignment Status Report' },
-  { value: 'replacement-report', label: 'Replacement Report' },
-  { value: 'attendance-summary', label: 'Attendance Summary Report' },
-  { value: 'attendance-rate', label: 'Attendance Rate Report' },
-  { value: 'branch-attendance', label: 'Branch Attendance Report' },
-  { value: 'payment-summary', label: 'Payment Summary Report' },
-  { value: 'monthly-payment', label: 'Monthly Payment Report' },
-  { value: 'pending-payment', label: 'Pending Payment Report' },
+  { value: 'employee-report', label: 'Employee Report' },
+  { value: 'branch-report', label: 'Branch Report' },
+  { value: 'payment-report', label: 'Payroll Report' },
+  { value: 'expense-report', label: 'Expense Report' },
+  { value: 'approval-report', label: 'Approval Report' },
 ];
 
 const reportConfig: Record<string, { headers: string[]; keys: string[]; title: string }> = {
-  'branch-summary': {
-    title: 'Branch Summary Report',
-    headers: ['Branch Name', 'Total Events', 'Total Assignments', 'Total Employees', 'Total Payments', 'Pending Payments'],
-    keys: ['branchName', 'totalEvents', 'totalAssignments', 'totalEmployees', 'totalPayments', 'pendingPayments'],
+  'employee-report': {
+    title: 'Employee Report',
+    headers: ['Employee Name', 'Morning Shifts', 'Afternoon Shifts', 'Full Day Shifts', 'Total Earnings', 'Pending Earnings'],
+    keys: ['employee', 'morningShifts', 'afternoonShifts', 'fullDayShifts', 'totalEarnings', 'pendingEarnings'],
   },
-  'branch-shift': {
-    title: 'Branch Shift Report',
-    headers: ['Branch Name', 'Shift Date', 'Shift Type', 'Required Staff', 'Assigned Staff', 'Shortage', 'Attendance Rate'],
-    keys: ['branch', 'shiftDate', 'shiftType', 'requiredStaff', 'assignedStaff', 'shortage', 'attendanceRate'],
+  'branch-report': {
+    title: 'Branch Report',
+    headers: ['Branch Name', 'Total Shifts', 'Total Assignments', 'Attendance Rate', 'Paid Amount', 'Pending Amount'],
+    keys: ['branch', 'totalShifts', 'totalAssignments', 'attendanceRate', 'paidAmount', 'pendingAmount'],
   },
-  'branch-payment': {
-    title: 'Branch Payment Report',
-    headers: ['Branch Name', 'Paid Amount', 'Pending Amount', 'Total Amount'],
-    keys: ['branch', 'paidAmount', 'pendingAmount', 'totalAmount'],
+  'payment-report': {
+    title: 'Payroll Report',
+    headers: ['Employee', 'Branch', 'Shift', 'Amount', 'Status', 'Date'],
+    keys: ['employee', 'branch', 'shift', 'amount', 'status', 'date'],
   },
-  'employee-summary': {
-    title: 'Employee Summary Report',
-    headers: ['Employee Name', 'Total Assignments', 'Morning Shifts', 'Afternoon Shifts', 'Full Day Shifts', 'Total Earnings'],
-    keys: ['employeeName', 'totalAssignments', 'morningShifts', 'afternoonShifts', 'fullDayShifts', 'totalEarnings'],
+  'expense-report': {
+    title: 'Expense Report',
+    headers: ['Date', 'Category', 'Amount', 'Status', 'Approved By'],
+    keys: ['date', 'category', 'amount', 'status', 'approvedBy'],
   },
-  'employee-attendance': {
-    title: 'Employee Attendance Report',
-    headers: ['Employee', 'Present', 'Absent', 'Late', 'Attendance Percentage'],
-    keys: ['employee', 'present', 'absent', 'late', 'attendancePercentage'],
-  },
-  'employee-payment': {
-    title: 'Employee Payment Report',
-    headers: ['Employee', 'Paid Amount', 'Pending Amount', 'Total Earnings'],
-    keys: ['employee', 'paidAmount', 'pendingAmount', 'totalEarnings'],
-  },
-  'assignment-summary': {
-    title: 'Assignment Summary Report',
-    headers: ['Branch', 'Shift Date', 'Shift', 'Assigned Employee', 'Status'],
-    keys: ['branch', 'shiftDate', 'shift', 'employee', 'status'],
-  },
-  'assignment-status': {
-    title: 'Assignment Status Report',
-    headers: ['Assigned', 'Replaced', 'Removed', 'Completed'],
-    keys: ['assigned', 'replaced', 'removed', 'completed'],
-  },
-  'replacement-report': {
-    title: 'Replacement Report',
-    headers: ['Original Employee', 'Replacement Employee', 'Branch', 'Date', 'Reason'],
-    keys: ['originalEmployee', 'replacementEmployee', 'branch', 'date', 'reason'],
-  },
-  'attendance-summary': {
-    title: 'Attendance Summary Report',
-    headers: ['Present', 'Absent', 'Late', 'Replaced'],
-    keys: ['present', 'absent', 'late', 'replaced'],
-  },
-  'attendance-rate': {
-    title: 'Attendance Rate Report',
-    headers: ['Attendance Rate'],
-    keys: ['attendanceRate'],
-  },
-  'branch-attendance': {
-    title: 'Branch Attendance Report',
-    headers: ['Branch', 'Present', 'Absent', 'Attendance Rate'],
-    keys: ['branch', 'present', 'absent', 'attendanceRate'],
-  },
-  'payment-summary': {
-    title: 'Payment Summary Report',
-    headers: ['Paid Amount', 'Pending Amount', 'Total Amount'],
-    keys: ['paidAmount', 'pendingAmount', 'totalAmount'],
-  },
-  'monthly-payment': {
-    title: 'Monthly Payment Report',
-    headers: ['Month', 'Paid Amount', 'Pending Amount', 'Total Amount'],
-    keys: ['month', 'paidAmount', 'pendingAmount', 'totalAmount'],
-  },
-  'pending-payment': {
-    title: 'Pending Payment Report',
-    headers: ['Employee', 'Branch', 'Amount', 'Shift Date'],
-    keys: ['employee', 'branch', 'amount', 'shiftDate'],
+  'approval-report': {
+    title: 'Approval Report',
+    headers: ['Date', 'Request Type', 'Employee', 'Status', 'Processed By'],
+    keys: ['date', 'type', 'employee', 'status', 'processedBy'],
   },
 };
 
 export function ReportsClient({ branches, currentStartDate, currentEndDate, currentBranchId }: ReportsClientProps) {
   const router = useRouter();
-  const [activeReport, setActiveReport] = useState('branch-summary');
+  const [activeReport, setActiveReport] = useState('employee-report');
   const [reportData, setReportData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -172,7 +112,7 @@ export function ReportsClient({ branches, currentStartDate, currentEndDate, curr
     loadData();
   }, [activeReport, currentStartDate, currentEndDate, currentBranchId, searchText]);
 
-  const config = reportConfig[activeReport] || reportConfig['branch-summary'];
+  const config = reportConfig[activeReport] || reportConfig['employee-report'];
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -316,124 +256,142 @@ export function ReportsClient({ branches, currentStartDate, currentEndDate, curr
   };
 
   return (
-    <div className="space-y-6">
-      {/* Filters Section */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-end gap-4 p-4 border rounded-md bg-muted/10">
-        <div className="grid gap-2 w-full lg:w-auto">
-          <label className="text-sm font-medium">Select Report Type</label>
-          <Select value={activeReport} onValueChange={(val) => setActiveReport(val || '')}>
-            <SelectTrigger className="w-full lg:w-[280px] font-semibold text-primary">
-              <SelectValue placeholder="Select Report Type" />
-            </SelectTrigger>
-            <SelectContent>
-              {reportTypes.map(r => (
-                <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="grid gap-2 w-full lg:w-auto">
-          <label className="text-sm font-medium">Start Date</label>
-          <Input 
-            type="date" 
-            value={currentStartDate || ''} 
-            onChange={(e) => handleFilterChange(e.target.value, currentEndDate || '', currentBranchId || 'all')}
-          />
-        </div>
-
-        <div className="grid gap-2 w-full lg:w-auto">
-          <label className="text-sm font-medium">End Date</label>
-          <Input 
-            type="date" 
-            value={currentEndDate || ''} 
-            onChange={(e) => handleFilterChange(currentStartDate || '', e.target.value, currentBranchId || 'all')}
-          />
-        </div>
-
-        <div className="grid gap-2 w-full lg:w-auto">
-          <label className="text-sm font-medium">Branch</label>
-          <Select 
-            value={currentBranchId || 'all'} 
-            onValueChange={(val) => handleFilterChange(currentStartDate || '', currentEndDate || '', val || 'all')}
-          >
-            <SelectTrigger className="w-full lg:w-[180px]">
-              <SelectValue placeholder="All Branches" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Branches</SelectItem>
-              {branches.map(b => (
-                <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="grid gap-2 w-full lg:w-auto">
-          <label className="text-sm font-medium">Search Report</label>
-          <Input
-            type="text"
-            placeholder="Search within report..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            className="w-full lg:w-[200px]"
-          />
-        </div>
-
-        <div className="flex gap-2 w-full lg:w-auto lg:ml-auto">
-          <Button variant="outline" className="w-full lg:w-auto" onClick={() => {
-            setSearchText('');
-            handleFilterChange('', '', 'all');
-          }}>
-            Clear Filters
-          </Button>
-        </div>
+    <div className="flex flex-col md:flex-row gap-6 items-start">
+      {/* Mobile Report Selector */}
+      <div className="md:hidden w-full space-y-2">
+        <label className="text-sm font-bold text-slate-500 uppercase tracking-wider">Report Type</label>
+        <Select value={activeReport} onValueChange={(val) => setActiveReport(val || '')}>
+            <SelectTrigger className="w-full md:w-[220px] bg-slate-50 border-slate-200 shadow-none">
+              <span className="flex-1 text-left truncate">
+                {reportTypes.find(r => r.value === activeReport)?.label || 'Select Report Type'}
+              </span>
+          </SelectTrigger>
+          <SelectContent>
+            {reportTypes.map(r => (
+              <SelectItem key={r.value} value={r.value} label={r.label}>{r.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Main Report Section */}
-      <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4">
-          <div>
-            <h3 className="text-lg font-bold text-card-foreground">{config.title}</h3>
-            <p className="text-sm text-muted-foreground">
-              Showing filtered results based on selected parameters.
-            </p>
-          </div>
-          {reportData.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={loading}>
-                <Download className="mr-2 h-4 w-4" /> CSV
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExportXLSX} disabled={loading}>
-                <Download className="mr-2 h-4 w-4" /> Excel
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={loading}>
-                <Download className="mr-2 h-4 w-4" /> PDF
-              </Button>
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block w-64 shrink-0 space-y-1 bg-white border rounded-xl p-3 shadow-sm">
+        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 px-3 pt-2">Report Types</div>
+        {reportTypes.map(r => (
+          <button 
+            key={r.value}
+            onClick={() => setActiveReport(r.value)}
+            className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              activeReport === r.value 
+                ? 'bg-blue-50 text-blue-700' 
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            {r.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 w-full space-y-6">
+        <div className="border rounded-xl bg-white shadow-sm p-5 md:p-8 space-y-6">
+          <div className="flex items-start gap-3 border-b pb-4">
+            <div className="p-2 bg-slate-100 rounded-lg">
+              <svg className="w-6 h-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
             </div>
-          )}
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">{config.title}</h2>
+              <p className="text-sm text-slate-500 mt-1 leading-snug">
+                Detailed view of {config.title.toLowerCase().replace('report', '')} metrics and data summary.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-5 max-w-xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">Start Date</label>
+                <Input 
+                  type="date" 
+                  value={currentStartDate || ''} 
+                  onChange={(e) => handleFilterChange(e.target.value, currentEndDate || '', currentBranchId || 'all')}
+                  className="bg-slate-50"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700">End Date</label>
+                <Input 
+                  type="date" 
+                  value={currentEndDate || ''} 
+                  onChange={(e) => handleFilterChange(currentStartDate || '', e.target.value, currentBranchId || 'all')}
+                  className="bg-slate-50"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Branch (Optional)</label>
+              <Select 
+                value={currentBranchId || 'all'} 
+                onValueChange={(val) => handleFilterChange(currentStartDate || '', currentEndDate || '', val || 'all')}
+              >
+                <SelectTrigger className="w-full bg-slate-50">
+                  <span className="flex-1 text-left truncate">
+                    {currentBranchId === 'all' ? 'All Branches' : branches.find((b: any) => b.id === currentBranchId)?.name || 'All Branches'}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" label="All Branches">All Branches</SelectItem>
+                  {branches.map(b => (
+                    <SelectItem key={b.id} value={b.id} label={b.name}>{b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700">Search Filter (Optional)</label>
+              <Input
+                type="text"
+                placeholder="Type to search within results..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="w-full bg-slate-50"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pt-4 border-t">
+            <Button onClick={loadData} disabled={loading} className="bg-slate-900 text-white hover:bg-slate-800">
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Generate Report
+            </Button>
+            <Button variant="outline" onClick={handleExportCSV} disabled={loading || reportData.length === 0} className="border-slate-200">
+              <Download className="mr-2 h-4 w-4 text-slate-500" /> Export CSV
+            </Button>
+            <Button variant="outline" onClick={handleExportXLSX} disabled={loading || reportData.length === 0} className="border-slate-200">
+              <Download className="mr-2 h-4 w-4 text-slate-500" /> Export Excel
+            </Button>
+            <Button variant="outline" onClick={handleExportPDF} disabled={loading || reportData.length === 0} className="border-slate-200">
+              <Download className="mr-2 h-4 w-4 text-slate-500" /> Export PDF
+            </Button>
+          </div>
         </div>
 
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-2 text-muted-foreground">
-            <Loader2 className="h-8 w-8 animate-spin" />
-            <span>Fetching report records...</span>
-          </div>
-        ) : reportData.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground font-medium">
-            No records found.
-          </div>
-        ) : (
+        {/* The Table Results */}
+        {!loading && reportData.length > 0 && (
           <div className="space-y-4">
-            <div className="rounded-md border">
+            <div className="hidden md:block rounded-xl border bg-white shadow-sm overflow-hidden">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-slate-50/50">
                   <TableRow>
                     {config.headers.map((h, idx) => (
                       <TableHead key={idx}>
                         <button
                           type="button"
-                          className="flex items-center gap-1 hover:text-foreground font-semibold"
+                          className="flex items-center gap-1 hover:text-slate-900 font-semibold text-slate-600"
                           onClick={() => handleSort(config.keys[idx])}
                         >
                           {h}
@@ -445,7 +403,7 @@ export function ReportsClient({ branches, currentStartDate, currentEndDate, curr
                 </TableHeader>
                 <TableBody>
                   {paginatedData.map((row, rowIdx) => (
-                    <TableRow key={rowIdx}>
+                    <TableRow key={rowIdx} className="hover:bg-slate-50/50 transition-colors">
                       {config.keys.map((k, colIdx) => {
                         let val = row[k];
                         if (k.toLowerCase().includes('amount') || k.toLowerCase().includes('payment') || k.toLowerCase().includes('earnings')) {
@@ -454,7 +412,7 @@ export function ReportsClient({ branches, currentStartDate, currentEndDate, curr
                           }
                         }
                         return (
-                          <TableCell key={colIdx} className="font-medium">
+                          <TableCell key={colIdx} className="text-sm text-slate-700">
                             {val ?? 'N/A'}
                           </TableCell>
                         );
@@ -465,16 +423,39 @@ export function ReportsClient({ branches, currentStartDate, currentEndDate, curr
               </Table>
             </div>
 
+            {/* Mobile View */}
+            <div className="flex flex-col md:hidden border rounded-md overflow-hidden bg-white shadow-sm">
+              {paginatedData.map((row, rowIdx) => (
+                <div key={rowIdx} className="flex flex-col p-3 border-b last:border-b-0 gap-1.5">
+                  {config.keys.map((k, colIdx) => {
+                    let val = row[k];
+                    if (k.toLowerCase().includes('amount') || k.toLowerCase().includes('payment') || k.toLowerCase().includes('earnings')) {
+                      if (!isNaN(Number(val)) && val !== '') {
+                        val = `₹${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                      }
+                    }
+                    return (
+                      <div key={colIdx} className="flex justify-between items-start gap-2">
+                        <span className="text-xs text-slate-500 mt-0.5">{config.headers[colIdx]}</span>
+                        <span className="font-medium text-slate-900 text-sm text-right">{String(val ?? 'N/A')}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Page {currentPage} of {totalPages} ({sortedData.length} records total)
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-sm text-slate-500">
+                  Page <span className="font-medium text-slate-900">{currentPage}</span> of {totalPages}
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
+                    className="h-8"
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   >
@@ -483,6 +464,7 @@ export function ReportsClient({ branches, currentStartDate, currentEndDate, curr
                   <Button
                     variant="outline"
                     size="sm"
+                    className="h-8"
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   >

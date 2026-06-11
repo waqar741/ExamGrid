@@ -32,12 +32,6 @@ export default async function AttendancePage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Attendance</h2>
-        <p className="text-muted-foreground">
-          Track and mark invigilator attendance
-        </p>
-      </div>
 
       <AttendanceClient
         initialData={assignments}

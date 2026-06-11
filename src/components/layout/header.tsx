@@ -32,9 +32,11 @@ export function Header({ email, role }: HeaderProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const debouncedGlobalSearch = useDebounce(searchQuery, 400);
   
-  // Create a nice title from the pathname
   const title = pathname.split('/').pop()?.replace(/-/g, ' ') || 'Dashboard';
-  const displayTitle = title.charAt(0).toUpperCase() + title.slice(1);
+  let displayTitle = title.charAt(0).toUpperCase() + title.slice(1);
+  if (pathname === '/dashboard/admin/users') {
+    displayTitle = 'Admin Management';
+  }
 
   useEffect(() => {
     if (debouncedGlobalSearch.trim()) {
@@ -106,7 +108,7 @@ export function Header({ email, role }: HeaderProps) {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52 mt-2 p-1.5 bg-white rounded-lg border shadow-sm">
             <DropdownMenuItem 
-              onClick={() => router.push('/dashboard/account?tab=personal')}
+              onClick={() => router.push('/dashboard/settings?tab=personal')}
               className="flex items-center gap-3 w-full cursor-pointer px-3 py-2.5 text-[13px] font-medium text-[#334155] hover:bg-slate-50 rounded-md focus:bg-slate-50"
             >
               <User className="h-4 w-4" />

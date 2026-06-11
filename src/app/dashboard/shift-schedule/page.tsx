@@ -7,14 +7,15 @@ export const dynamic = 'force-dynamic';
 export default async function ShiftSchedulePage({
   searchParams,
 }: {
-  searchParams: { page?: string; search?: string; branch?: string; shift?: string; startDate?: string; endDate?: string }
+  searchParams: Promise<{ page?: string; search?: string; branchId?: string; shift?: string; startDate?: string; endDate?: string }>
 }) {
-  const page = searchParams.page ? parseInt(searchParams.page) : 1;
-  const search = searchParams.search || '';
-  const branchId = searchParams.branch || 'all';
-  const shiftType = searchParams.shift || 'all';
-  const startDate = searchParams.startDate || '';
-  const endDate = searchParams.endDate || '';
+  const resolvedParams = await searchParams;
+  const page = resolvedParams.page ? parseInt(resolvedParams.page) : 1;
+  const search = resolvedParams.search || '';
+  const branchId = resolvedParams.branch || 'all';
+  const shiftType = resolvedParams.shift || 'all';
+  const startDate = resolvedParams.startDate || '';
+  const endDate = resolvedParams.endDate || '';
 
   const [shiftsRes, branches] = await Promise.all([
     getShiftSchedules({ page, pageSize: 10, search, branchId, shiftType, startDate, endDate }),

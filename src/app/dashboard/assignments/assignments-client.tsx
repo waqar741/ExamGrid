@@ -120,12 +120,14 @@ export function AssignmentsClient({
           />
           <Select value={branchId} onValueChange={(val) => handleBranchChange(val || 'all')}>
             <SelectTrigger className="w-full sm:w-[150px] text-xs h-8 bg-transparent">
-              <SelectValue placeholder="All Branches" />
+              <span className="flex-1 text-left truncate">
+                {branchId === 'all' ? 'All Branches' : branches.find((b: any) => b.id === branchId)?.name || 'All Branches'}
+              </span>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all" className="text-xs">All Branches</SelectItem>
+              <SelectItem value="all" className="text-xs" label="All Branches">All Branches</SelectItem>
               {branches.map((b) => (
-                <SelectItem key={b.id} value={b.id} className="text-xs">
+                <SelectItem key={b.id} value={b.id} className="text-xs" label={b.name}>
                   {b.name}
                 </SelectItem>
               ))}
@@ -133,14 +135,16 @@ export function AssignmentsClient({
           </Select>
           <Select value={status} onValueChange={(val) => handleStatusChange(val || 'all')}>
             <SelectTrigger className="w-full sm:w-[150px] text-xs h-8 bg-transparent">
-              <SelectValue placeholder="All Statuses" />
+              <span className="flex-1 text-left truncate">
+                {status === 'all' ? 'All Statuses' : status.charAt(0).toUpperCase() + status.slice(1)}
+              </span>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all" className="text-xs">All Statuses</SelectItem>
-              <SelectItem value="assigned" className="text-xs">Assigned</SelectItem>
-              <SelectItem value="completed" className="text-xs">Completed</SelectItem>
-              <SelectItem value="replaced" className="text-xs">Replaced</SelectItem>
-              <SelectItem value="removed" className="text-xs">Removed</SelectItem>
+              <SelectItem value="all" className="text-xs" label="All Statuses">All Statuses</SelectItem>
+              <SelectItem value="assigned" className="text-xs" label="Assigned">Assigned</SelectItem>
+              <SelectItem value="completed" className="text-xs" label="Completed">Completed</SelectItem>
+              <SelectItem value="replaced" className="text-xs" label="Replaced">Replaced</SelectItem>
+              <SelectItem value="removed" className="text-xs" label="Removed">Removed</SelectItem>
             </SelectContent>
           </Select>
         </div>

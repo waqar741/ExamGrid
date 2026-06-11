@@ -18,8 +18,8 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
   }
 
   const resolvedParams = await searchParams;
-  const page = parseInt(resolvedParams.page || '1', 10);
-  const pageSize = parseInt(resolvedParams.pageSize || '10', 10);
+  const page = 1;
+  const pageSize = 15;
   const search = resolvedParams.search || '';
 
   const { data: employees, total } = await getEmployees({
@@ -32,12 +32,6 @@ export default async function EmployeesPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Employees</h2>
-        <p className="text-muted-foreground">
-          Manage and monitor invigilator records
-        </p>
-      </div>
 
       <EmployeesClient
         initialData={employees}

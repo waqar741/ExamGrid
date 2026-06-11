@@ -6,27 +6,22 @@ import { getSession } from '@/lib/auth';
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const session = await getSession();
 
   // Parse searchParams for month and year, default to current
   const now = new Date();
-  const year = parseInt(searchParams.year as string) || now.getFullYear();
-  const month = parseInt(searchParams.month as string) || (now.getMonth() + 1);
-  const branchId = searchParams.branch as string | undefined;
+  const resolvedParams = await searchParams;
+  const year = parseInt(resolvedParams.year as string) || now.getFullYear();
+  const month = parseInt(resolvedParams.month as string) || (now.getMonth() + 1);
+  const branchId = resolvedParams.branch as string | undefined;
 
   const events = await getCalendarEvents(year, month, branchId);
   const branches = await getAllBranches();
 
   return (
     <div className="space-y-6 flex flex-col h-full">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Calendar</h2>
-        <p className="text-muted-foreground">
-          View and manage examination events by month.
-        </p>
-      </div>
 
       <div className="flex-1 bg-card border rounded-lg overflow-x-auto flex flex-col">
         <CalendarClient 

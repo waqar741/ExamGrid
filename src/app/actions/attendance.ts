@@ -111,8 +111,8 @@ export async function markAttendance(assignmentId: string, status: string) {
       new_values: { assignment_id: assignmentId, attendance_status: status }
     }]);
 
-    // Update assignment status to completed if they attended
-    if (status === 'present' || status === 'late') {
+    // Update assignment status to completed if they attended or skipped
+    if (status === 'present' || status === 'late' || status === 'skipped') {
       await supabase
         .from('assignments')
         .update({ assignment_status: 'completed' })

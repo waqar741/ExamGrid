@@ -104,21 +104,20 @@ export async function getCurrentUser() {
   };
 }
 
-export async function updateUserProfile(fullName: string, phone: string) {
+export async function updateUserProfile(fullName: string, phone: string, email: string) {
   const session = await getSession();
   if (!session) return { error: 'Not authenticated' };
 
-  if (!fullName) return { error: 'Full name is required' };
+  if (!fullName || !email) return { error: 'Name and Email are required' };
 
-  // Update users table full_name
   const { error: userError } = await supabase
     .from('users')
-    .update({ full_name: fullName, updated_at: new Date().toISOString() })
+    .update({ full_name: fullName, email, updated_at: new Date().toISOString() })
     .eq('id', session.userId);
 
   if (userError) {
-    console.error('Error updating user profile:', userError);
-    return { error: 'Failed to update user profile' };
+    console.error('Error updating profile:', userError);
+    return { error: 'Failed to update profile. Email might be in use.' };
   }
 
   // Update employees table phone if role is employee
@@ -140,10 +139,10 @@ export async function updateUserProfile(fullName: string, phone: string) {
     entity_type: 'users',
     entity_id: session.userId,
     action: 'UPDATE_PROFILE',
-    new_values: { full_name: fullName, phone }
+    new_values: { full_name: fullName, phone, email }
   }]);
 
-  revalidatePath('/dashboard/account');
+  revalidatePath('/dashboard/settings');
   revalidatePath('/dashboard/profile');
   return { success: true };
 }
@@ -233,18 +232,6 @@ export async function getAccountData() {
     employee = empData;
   }
 
-  // Get login history (last 10 logins)
-  const { data: loginHistory } = await supabase
-    .from('audit_logs')
-    .select('*')
-    .eq('user_id', session.userId)
-    .eq('action', 'LOGIN')
-    .order('created_at', { ascending: false })
-    .limit(10);
-
-  // Get preference data (if stored in localStorage, we'll need to handle client-side)
-  // For now, returning server data only
-
   return {
     user: {
       id: user.id,
@@ -257,8 +244,7 @@ export async function getAccountData() {
       last_login: user.last_login,
       phone: employee?.phone || '',
       employee_code: employee?.employee_code || '',
-    },
-    loginHistory: loginHistory || [],
+      created_at: user.created_at
+    }
   };
 }
-

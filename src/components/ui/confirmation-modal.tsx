@@ -15,13 +15,15 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
 interface ConfirmationModalProps {
-  trigger: React.ReactNode;
+  trigger?: React.ReactNode;
   title: string;
   description: string;
   level: 1 | 2 | 3;
   confirmLabel?: string;
   confirmVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
   onConfirm: (reason?: string) => Promise<any> | void;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function ConfirmationModal({
@@ -32,8 +34,28 @@ export function ConfirmationModal({
   confirmLabel = 'Confirm',
   confirmVariant = 'default',
   onConfirm,
+  isOpen,
+  onOpenChange,
 }: ConfirmationModalProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  const isControlled = isOpen !== undefined;
+  const open = isControlled ? isOpen : internalOpen;
+  
+  const handleOpenChange = (val: boolean) => {
+    if (!isControlled) {
+      setInternalOpen(val);
+    }
+    if (onOpenChange) {
+      onOpenChange(val);
+    }
+    if (!val) {
+      setReason('');
+      setConfirmText('');
+      setError('');
+    }
+  };
+
   const [loading, setLoading] = useState(false);
   const [reason, setReason] = useState('');
   const [confirmText, setConfirmText] = useState('');
@@ -58,7 +80,7 @@ export function ConfirmationModal({
       if (res?.error) {
         setError(res.error);
       } else {
-        setOpen(false);
+        handleOpenChange(false);
         setReason('');
         setConfirmText('');
       }
@@ -70,15 +92,8 @@ export function ConfirmationModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(val) => {
-      setOpen(val);
-      if (!val) {
-        setReason('');
-        setConfirmText('');
-        setError('');
-      }
-    }}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-[425px] bg-card">
         <DialogHeader>
           <DialogTitle className={confirmVariant === 'destructive' ? 'text-destructive' : 'text-foreground'}>
@@ -127,7 +142,7 @@ export function ConfirmationModal({
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
-          <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+          <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={loading}>
             Cancel
           </Button>
           <Button
