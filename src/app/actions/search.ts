@@ -6,12 +6,12 @@ import { getSession } from '@/lib/auth';
 export async function globalSearch(query: string) {
   const session = await getSession();
   if (!session || session.role === 'employee') {
-    return { employees: [], branches: [], events: [] };
+    return { employees: [], branches: [], shiftSchedules: [] };
   }
 
   const cleanQuery = query.trim().toLowerCase();
   if (!cleanQuery) {
-    return { employees: [], branches: [], events: [] };
+    return { employees: [], branches: [], shiftSchedules: [] };
   }
 
   // 1. Search employees (joining users)
@@ -37,21 +37,22 @@ export async function globalSearch(query: string) {
     .eq('is_active', true)
     .or(`name.ilike.%${cleanQuery}%,description.ilike.%${cleanQuery}%`);
 
-  // 3. Search events
-  const { data: events } = await supabase
-    .from('events')
-    .select('id, event_date, notes, branches(name)')
+  // 3. Search shift schedules
+  const { data: shiftSchedules } = await supabase
+    .from('shift_schedules')
+    .select('id, shift_date, notes, branches(name), shift_templates(name)')
     .eq('is_active', true) as any;
 
-  const filteredEvents = events?.filter((ev: any) => 
-    ev.event_date.toLowerCase().includes(cleanQuery) ||
+  const filteredShiftSchedules = shiftSchedules?.filter((ev: any) => 
+    ev.shift_date.toLowerCase().includes(cleanQuery) ||
     ev.branches?.name.toLowerCase().includes(cleanQuery) ||
+    ev.shift_templates?.name.toLowerCase().includes(cleanQuery) ||
     (ev.notes && ev.notes.toLowerCase().includes(cleanQuery))
   ) || [];
 
   return {
     employees: filteredEmployees.slice(0, 10),
     branches: (branches || []).slice(0, 10),
-    events: filteredEvents.slice(0, 10)
+    shiftSchedules: filteredShiftSchedules.slice(0, 10)
   };
 }

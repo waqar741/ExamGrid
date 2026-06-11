@@ -105,7 +105,7 @@ export function PaymentsClient({
                   <TableCell className="font-medium text-xs">
                     {payment.assignments?.employees?.users?.full_name}
                   </TableCell>
-                  <TableCell className="text-xs">{payment.assignments?.events?.branches?.name}</TableCell>
+                  <TableCell className="text-xs">{payment.assignments?.shift_schedules?.branches?.name}</TableCell>
                   <TableCell className="font-bold text-xs">₹{payment.amount}</TableCell>
                   <TableCell>
                     <Badge variant={
@@ -148,7 +148,7 @@ export function PaymentsClient({
                   {payment.payment_status}
                 </Badge>
               </div>
-              <div className="text-xs text-muted-foreground">{payment.assignments?.events?.branches?.name}</div>
+              <div className="text-xs text-muted-foreground">{payment.assignments?.shift_schedules?.branches?.name}</div>
               <div className="font-bold text-green-600 text-lg mt-1">₹{payment.amount}</div>
               <div className="text-xs text-muted-foreground">
                 Date: {payment.payment_date ? format(new Date(payment.payment_date), 'MMM d, yyyy') : 'Pending'}

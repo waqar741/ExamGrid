@@ -25,20 +25,19 @@ export async function GET(request: NextRequest) {
       remarks,
       assignments!inner(
         employees(users(full_name)),
-        events!inner(event_date, branches(id, name)),
-        shift_templates(name)
+        shift_schedules!inner(shift_date, branches(id, name), shift_templates(name))
       )
     `)
     .order('created_at', { ascending: false });
 
   if (branchId && branchId !== 'all') {
-    query = query.eq('assignments.events.branch_id', branchId);
+    query = query.eq('assignments.shift_schedules.branch_id', branchId);
   }
   if (startDate) {
-    query = query.gte('assignments.events.event_date', startDate);
+    query = query.gte('assignments.shift_schedules.shift_date', startDate);
   }
   if (endDate) {
-    query = query.lte('assignments.events.event_date', endDate);
+    query = query.lte('assignments.shift_schedules.shift_date', endDate);
   }
 
   const { data, error } = await query;
@@ -50,9 +49,9 @@ export async function GET(request: NextRequest) {
   const formattedData = data.map((p: any) => ({
     'Payment ID': p.id,
     'Employee Name': p.assignments?.employees?.users?.full_name || 'N/A',
-    'Branch': p.assignments?.events?.branches?.name || 'N/A',
-    'Shift': p.assignments?.shift_templates?.name || 'N/A',
-    'Event Date': p.assignments?.events?.event_date || 'N/A',
+    'Branch': p.assignments?.shift_schedules?.branches?.name || 'N/A',
+    'Shift': p.assignments?.shift_schedules?.shift_templates?.name || 'N/A',
+    'Shift Date': p.assignments?.shift_schedules?.shift_date || 'N/A',
     'Amount (INR)': p.amount,
     'Status': (p.payment_status || 'N/A').toUpperCase(),
     'Payment Date': p.payment_date || 'N/A',

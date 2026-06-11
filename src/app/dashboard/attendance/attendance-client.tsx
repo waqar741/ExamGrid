@@ -105,10 +105,10 @@ export function AttendanceClient({
                 return (
                   <TableRow key={assignment.id} className="hover:bg-muted/10">
                     <TableCell className="text-xs">
-                      {assignment.events?.event_date && format(new Date(assignment.events.event_date), 'MMM d, yyyy')}
+                      {assignment.shift_schedules?.shift_date && format(new Date(assignment.shift_schedules.shift_date), 'MMM d, yyyy')}
                     </TableCell>
-                    <TableCell className="text-xs">{assignment.events?.branches?.name}</TableCell>
-                    <TableCell className="text-xs">{assignment.shift_templates?.name}</TableCell>
+                    <TableCell className="text-xs">{assignment.shift_schedules?.branches?.name}</TableCell>
+                    <TableCell className="text-xs">{assignment.shift_schedules?.shift_templates?.name}</TableCell>
                     <TableCell className="font-medium text-xs">
                       {assignment.employees?.users?.full_name}
                     </TableCell>

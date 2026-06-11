@@ -31,14 +31,13 @@ export function Sidebar({ role }: SidebarProps) {
   const mainNav = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
-    { name: 'Events', href: '/dashboard/events', icon: CalendarDays },
+    { name: 'Shift Schedule', href: '/dashboard/shift-schedule', icon: CalendarDays },
     { name: 'Employees', href: '/dashboard/employees', icon: Users, adminOnly: true },
   ];
 
   const manageNav = [
     { name: 'Assignments', href: '/dashboard/assignments', icon: ClipboardList, adminOnly: true },
     { name: 'Branches', href: '/dashboard/branches', icon: Building2, adminOnly: true },
-    { name: 'Shift Templates', href: '/dashboard/shifts', icon: Clock, adminOnly: true },
     { name: 'Pay Rates', href: '/dashboard/pay-rates', icon: CreditCard, adminOnly: true },
     { name: 'Attendance', href: '/dashboard/attendance', icon: CheckSquare },
     { name: 'Payments', href: '/dashboard/payments', icon: CreditCard },

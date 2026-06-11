@@ -24,20 +24,19 @@ export async function GET(request: NextRequest) {
       remarks,
       assignments!inner(
         employees(users(full_name)),
-        events!inner(event_date, branches(id, name)),
-        shift_templates(name)
+        shift_schedules!inner(shift_date, branches(id, name), shift_templates(name))
       )
     `)
     .order('created_at', { ascending: false });
 
   if (branchId && branchId !== 'all') {
-    query = query.eq('assignments.events.branch_id', branchId);
+    query = query.eq('assignments.shift_schedules.branch_id', branchId);
   }
   if (startDate) {
-    query = query.gte('assignments.events.event_date', startDate);
+    query = query.gte('assignments.shift_schedules.shift_date', startDate);
   }
   if (endDate) {
-    query = query.lte('assignments.events.event_date', endDate);
+    query = query.lte('assignments.shift_schedules.shift_date', endDate);
   }
 
   const { data, error } = await query;
@@ -49,9 +48,9 @@ export async function GET(request: NextRequest) {
   const formattedData = data.map((att: any) => ({
     'Attendance ID': att.id,
     'Employee Name': att.assignments?.employees?.users?.full_name || 'N/A',
-    'Branch': att.assignments?.events?.branches?.name || 'N/A',
-    'Shift': att.assignments?.shift_templates?.name || 'N/A',
-    'Event Date': att.assignments?.events?.event_date || 'N/A',
+    'Branch': att.assignments?.shift_schedules?.branches?.name || 'N/A',
+    'Shift': att.assignments?.shift_schedules?.shift_templates?.name || 'N/A',
+    'Shift Date': att.assignments?.shift_schedules?.shift_date || 'N/A',
     'Status': (att.attendance_status || 'N/A').toUpperCase(),
     'Marked At': att.marked_at || 'N/A',
     'Remarks': att.remarks || 'N/A'

@@ -18,7 +18,7 @@ export default async function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border bg-card text-card-foreground shadow">
           <div className="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
-            <h3 className="tracking-tight text-sm font-medium">Events Today</h3>
+            <h3 className="tracking-tight text-sm font-medium">Shifts Today</h3>
           </div>
           <div className="p-6 pt-0">
             <div className="text-2xl font-bold">{metrics.eventsToday}</div>
@@ -53,11 +53,11 @@ export default async function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <div className="rounded-xl border bg-card text-card-foreground shadow col-span-1 md:col-span-2 lg:col-span-4">
           <div className="flex flex-col space-y-1.5 p-6 border-b">
-            <h3 className="font-semibold leading-none tracking-tight">Upcoming Events</h3>
+            <h3 className="font-semibold leading-none tracking-tight">Upcoming Shifts</h3>
           </div>
           <div className="p-0">
             {metrics.upcomingEvents.length === 0 ? (
-              <div className="p-6 text-sm text-muted-foreground">No upcoming events found.</div>
+              <div className="p-6 text-sm text-muted-foreground">No upcoming shifts found.</div>
             ) : (
               <div className="divide-y">
                 {metrics.upcomingEvents.map((ev: any) => {
@@ -66,8 +66,8 @@ export default async function DashboardPage() {
                   return (
                     <div key={ev.id} className="flex items-center justify-between p-4 px-6">
                       <div>
-                        <p className="font-medium">{ev.branches?.name}</p>
-                        <p className="text-sm text-muted-foreground">{format(new Date(ev.event_date), 'MMM d, yyyy')}</p>
+                        <p className="font-medium">{ev.branches?.name} - {ev.shift_type}</p>
+                        <p className="text-sm text-muted-foreground">{format(new Date(ev.shift_date), 'MMM d, yyyy')}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium">

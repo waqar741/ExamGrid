@@ -19,9 +19,10 @@ export async function getCalendarEvents(year: number, month: number, branchId?: 
 
   let selectQuery = `
     id,
-    event_date,
+    shift_date,
     required_staff_count,
     branches (id, name),
+    shift_templates (id, name),
     assignments (
       id,
       employee_id,
@@ -34,9 +35,10 @@ export async function getCalendarEvents(year: number, month: number, branchId?: 
   if (session.role === 'employee') {
     selectQuery = `
       id,
-      event_date,
+      shift_date,
       required_staff_count,
       branches (id, name),
+      shift_templates (id, name),
       assignments!inner (
         id,
         employee_id,
@@ -48,11 +50,11 @@ export async function getCalendarEvents(year: number, month: number, branchId?: 
   }
 
   let query = supabase
-    .from('events')
+    .from('shift_schedules')
     .select(selectQuery)
     .eq('is_active', true)
-    .gte('event_date', startDate)
-    .lte('event_date', endDate);
+    .gte('shift_date', startDate)
+    .lte('shift_date', endDate);
 
   if (session.role === 'employee') {
     query = query.eq('assignments.employee_id', session.userId);

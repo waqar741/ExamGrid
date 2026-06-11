@@ -27,7 +27,7 @@ export async function getPayments(options?: {
       assignments!inner (
         employee_id,
         employees (users (full_name)),
-        events (event_date, branches (name))
+        shift_schedules (shift_date, branches (name))
       )
     `, { count: 'exact' });
 
@@ -54,7 +54,7 @@ export async function getPayments(options?: {
     const cleanSearch = search.toLowerCase();
     finalData = data.filter((item: any) => {
       const empName = item.assignments?.employees?.users?.full_name?.toLowerCase() || '';
-      const branchName = item.assignments?.events?.branches?.name?.toLowerCase() || '';
+      const branchName = item.assignments?.shift_schedules?.branches?.name?.toLowerCase() || '';
       return empName.includes(cleanSearch) || branchName.includes(cleanSearch);
     });
     finalCount = finalData.length;

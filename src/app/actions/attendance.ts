@@ -24,9 +24,8 @@ export async function getAssignmentsForAttendance(options?: {
     .from('assignments')
     .select(`
       *,
-      events (event_date, branches (name)),
+      shift_schedules (shift_date, branches (name), shift_templates (name)),
       employees (users (full_name)),
-      shift_templates (name),
       attendance (*)
     `, { count: 'exact' })
     .neq('assignment_status', 'replaced');
@@ -54,8 +53,8 @@ export async function getAssignmentsForAttendance(options?: {
     const cleanSearch = search.toLowerCase();
     finalData = data.filter((item: any) => {
       const empName = item.employees?.users?.full_name?.toLowerCase() || '';
-      const branchName = item.events?.branches?.name?.toLowerCase() || '';
-      const shiftName = item.shift_templates?.name?.toLowerCase() || '';
+      const branchName = item.shift_schedules?.branches?.name?.toLowerCase() || '';
+      const shiftName = item.shift_schedules?.shift_templates?.name?.toLowerCase() || '';
       return empName.includes(cleanSearch) || branchName.includes(cleanSearch) || shiftName.includes(cleanSearch);
     });
     finalCount = finalData.length;

@@ -25,7 +25,7 @@ export async function getShiftById(id: string) {
       *,
       assignments (
         id, assignment_status,
-        events (event_date, branches(name))
+        shift_schedules (shift_date, branches(name))
       ),
       branch_pay_rates (rate, effective_from, branches(name))
     `)

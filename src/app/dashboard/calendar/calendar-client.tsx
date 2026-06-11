@@ -146,9 +146,9 @@ export function CalendarClient({
           if (!day) return <div key={`empty-${idx}`} className="bg-muted/10"></div>;
 
           // Find events for this day
-          // Note: event_date from DB is YYYY-MM-DD
+          // Note: shift_date from DB is YYYY-MM-DD
           const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          const dayEvents = initialEvents.filter(ev => ev.event_date === dateStr);
+          const dayEvents = initialEvents.filter(ev => ev.shift_date === dateStr);
 
           return (
             <div 
@@ -167,7 +167,7 @@ export function CalendarClient({
                       key={ev.id} 
                       className="text-xs bg-muted border rounded px-1.5 py-1 flex items-center justify-between"
                     >
-                      <span className="truncate mr-1 font-medium">{ev.branches?.name}</span>
+                      <span className="truncate mr-1 font-medium">{ev.branches?.name} - {ev.shift_templates?.name}</span>
                       <div className="flex items-center flex-shrink-0 space-x-1.5">
                         {role !== 'employee' && (
                           <span className="text-[10px] text-muted-foreground">{assignedCount}/{ev.required_staff_count}</span>
@@ -187,7 +187,7 @@ export function CalendarClient({
         date={selectedDate} 
         events={selectedDate ? initialEvents.filter(ev => {
           const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
-          return ev.event_date === dateStr;
+          return ev.shift_date === dateStr;
         }) : []}
         onClose={() => setSelectedDate(null)} 
         role={role}
