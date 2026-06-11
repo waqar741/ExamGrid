@@ -72,8 +72,7 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
     router.push(`/dashboard/settings?tab=${tabId}`);
   };
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const executeProfileUpdate = async () => {
     setProfileLoading(true);
     setProfileMessage(null);
 
@@ -84,6 +83,13 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
       setProfileMessage({ type: 'success', text: 'Profile updated successfully.' });
     }
     setProfileLoading(false);
+  };
+
+  const handleUpdateProfileClick = (e: React.FormEvent) => {
+    e.preventDefault();
+    setVerifyAction('profile');
+    setVerifyPassword('');
+    setVerifyError('');
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -100,7 +106,10 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
     
     setVerifyLoading(false);
     
-    if (verifyAction === 'password') {
+    if (verifyAction === 'profile') {
+      setVerifyAction(null);
+      await executeProfileUpdate();
+    } else if (verifyAction === 'password') {
       setVerifyAction(null);
       setPasswordOpen(true);
     }
@@ -169,7 +178,7 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
         {activeTab === 'personal' && (
           <div className="p-6">
             <h3 className="text-lg font-bold tracking-tight mb-6">Personal Information</h3>
-            <form onSubmit={handleUpdateProfile} className="space-y-6">
+            <form onSubmit={handleUpdateProfileClick} className="space-y-6">
               {profileMessage && (
                 <div
                   className={`p-3 rounded-md text-sm font-medium ${
