@@ -25,7 +25,7 @@ export async function login(formData: FormData) {
       .eq('employee_code', emailRaw.trim())
       .single();
 
-    const usersData = empData.users as any;
+    const usersData = empData?.users as any;
     if (usersData && usersData.email) {
       searchEmail = usersData.email.toLowerCase();
     }
