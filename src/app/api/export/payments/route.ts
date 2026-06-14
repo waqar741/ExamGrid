@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   const branchId = searchParams.get('branch');
-  const format = searchParams.get('format') || 'csv';
+  const fmt = searchParams.get('format') || 'csv';
 
   let query = supabase
     .from('payments')
@@ -22,10 +22,13 @@ export async function GET(request: NextRequest) {
       amount,
       payment_status,
       payment_date,
+      requested_at,
+      requested_remarks,
       remarks,
       assignments!inner(
+        payment_snapshot,
         employees(users(full_name)),
-        shift_schedules!inner(shift_date, branches(id, name), shift_templates(name))
+        shift_schedules!inner(shift_date, shift_type, branches(id, name))
       )
     `)
     .order('created_at', { ascending: false });
@@ -46,23 +49,29 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Error fetching data', { status: 500 });
   }
 
-  const formattedData = data.map((p: any) => ({
-    'Payment ID': p.id,
-    'Employee Name': p.assignments?.employees?.users?.full_name || 'N/A',
-    'Branch': p.assignments?.shift_schedules?.branches?.name || 'N/A',
-    'Shift': p.assignments?.shift_schedules?.shift_templates?.name || 'N/A',
-    'Shift Date': p.assignments?.shift_schedules?.shift_date || 'N/A',
-    'Amount (INR)': p.amount,
-    'Status': (p.payment_status || 'N/A').toUpperCase(),
-    'Payment Date': p.payment_date || 'N/A',
-    'Remarks': p.remarks || 'N/A'
-  }));
+  const formattedData = (data || []).map((p: any) => {
+    const shiftType = p.assignments?.shift_schedules?.shift_type || 'N/A';
+    const formattedShift = shiftType.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+
+    return {
+      'Employee Name': p.assignments?.employees?.users?.full_name || 'N/A',
+      'Branch': p.assignments?.shift_schedules?.branches?.name || 'N/A',
+      'Shift': formattedShift,
+      'Shift Date': p.assignments?.shift_schedules?.shift_date || 'N/A',
+      'Amount (INR)': p.amount,
+      'Status': (p.payment_status || 'N/A').toUpperCase().replace(/_/g, ' '),
+      'Requested At': p.requested_at ? new Date(p.requested_at).toLocaleDateString() : 'N/A',
+      'Payment Date': p.payment_date || 'N/A',
+      'Employee Remarks': p.requested_remarks || 'N/A',
+      'Admin Remarks': p.remarks || 'N/A',
+    };
+  });
 
   const worksheet = XLSX.utils.json_to_sheet(formattedData);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Payments');
 
-  if (format === 'xlsx') {
+  if (fmt === 'xlsx') {
     const buf = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
     return new NextResponse(buf, {
       headers: {

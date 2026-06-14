@@ -23,7 +23,7 @@ export default async function AssignmentsPage({ searchParams }: PageProps) {
 
   const resolvedParams = await searchParams;
   const page = parseInt(resolvedParams.page || '1', 10);
-  const pageSize = parseInt(resolvedParams.pageSize || '10', 10);
+  const pageSize = parseInt(resolvedParams.pageSize || '50', 10);
   const search = resolvedParams.search || '';
   const branchId = resolvedParams.branchId || 'all';
   const status = resolvedParams.status || 'all';

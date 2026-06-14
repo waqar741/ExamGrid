@@ -23,9 +23,10 @@ import {
 interface HeaderProps {
   email: string;
   role: string;
+  fullName?: string;
 }
 
-export function Header({ email, role }: HeaderProps) {
+export function Header({ email, role, fullName }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,8 +102,8 @@ export function Header({ email, role }: HeaderProps) {
                 {email.charAt(0).toUpperCase()}
               </span>
               <div className="text-left hidden sm:block">
-                <p className="text-[13px] font-medium leading-none text-[#1e293b]">{role.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')}</p>
-                <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase tracking-wider">{role.toUpperCase()}</p>
+                <p className="text-[13px] font-medium leading-none text-[#1e293b]">{fullName || email.split('@')[0]}</p>
+                <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase tracking-wider">{role.replace('_', ' ')}</p>
               </div>
             </Button>
           </DropdownMenuTrigger>

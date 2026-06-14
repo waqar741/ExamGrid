@@ -30,6 +30,7 @@ export function WizardClient({ branches, employees }: WizardClientProps) {
   const [date, setDate] = useState('');
   const [branchId, setBranchId] = useState('');
   const [shiftType, setShiftType] = useState('');
+  const [paymentAmount, setPaymentAmount] = useState('');
 
   // Step 2 state
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,6 +95,7 @@ export function WizardClient({ branches, employees }: WizardClientProps) {
       branchId,
       date,
       shiftType,
+      paymentAmount: paymentAmount ? Number(paymentAmount) : undefined,
       notes: 'Assigned via Guided Wizard'
     }));
 
@@ -160,54 +162,54 @@ export function WizardClient({ branches, employees }: WizardClientProps) {
       </div>
 
       {error && (
-        <div className="mb-6 bg-destructive/10 text-destructive border border-destructive/20 p-4 rounded-lg text-sm font-medium">
+        <div className="mb-4 bg-destructive/10 text-destructive border border-destructive/20 p-3 rounded-lg text-sm font-medium">
           {error}
         </div>
       )}
 
       {/* Card Content */}
-      <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
-        <div className="p-6 sm:p-8 border-b">
+      <div className="bg-white border rounded-xl shadow-sm flex flex-col">
+        <div className="p-4 sm:p-5 border-b bg-slate-50/50">
           {step === 1 && (
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Step 1: Shift Details</h2>
-              <p className="text-sm text-slate-500 mt-1">Define the shift that will be assigned.</p>
+              <h2 className="text-base font-semibold text-slate-900">Step 1: Shift Details</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Define the shift that will be assigned.</p>
             </div>
           )}
           {step === 2 && (
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Step 2: Select Employees</h2>
-              <p className="text-sm text-slate-500 mt-1">Choose the employees who will work this shift.</p>
+              <h2 className="text-base font-semibold text-slate-900">Step 2: Select Employees</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Choose the employees who will work this shift.</p>
             </div>
           )}
           {step === 3 && (
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Step 3: Preview & Save</h2>
-              <p className="text-sm text-slate-500 mt-1">Review the assignments before creating them.</p>
+              <h2 className="text-base font-semibold text-slate-900">Step 3: Preview & Save</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Review the assignments before creating them.</p>
             </div>
           )}
         </div>
 
-        <div className="p-6 sm:p-8 min-h-[300px]">
+        <div className="p-4 sm:p-5 min-h-[220px]">
           {/* Step 1 Form */}
           {step === 1 && (
-            <div className="max-w-md space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="date" className="text-slate-600 font-medium">Date</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
+              <div className="space-y-1.5">
+                <Label htmlFor="date" className="text-slate-600 font-medium text-xs">Date</Label>
                 <Input 
                   id="date" 
                   type="date" 
-                  className="h-11" 
+                  className="h-9 text-sm" 
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="branch" className="text-slate-600 font-medium">Branch</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="branch" className="text-slate-600 font-medium text-xs">Branch</Label>
                 <select
                   id="branch"
-                  className="flex h-11 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   value={branchId}
                   onChange={(e) => setBranchId(e.target.value)}
                 >
@@ -218,11 +220,11 @@ export function WizardClient({ branches, employees }: WizardClientProps) {
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="shiftType" className="text-slate-600 font-medium">Shift Type</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="shiftType" className="text-slate-600 font-medium text-xs">Shift Type</Label>
                 <select
                   id="shiftType"
-                  className="flex h-11 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   value={shiftType}
                   onChange={(e) => setShiftType(e.target.value)}
                 >
@@ -232,50 +234,65 @@ export function WizardClient({ branches, employees }: WizardClientProps) {
                   ))}
                 </select>
               </div>
+              
+              <div className="space-y-1.5">
+                <Label htmlFor="paymentAmount" className="text-slate-600 font-medium text-xs">Payment Amount (₹) <span className="text-muted-foreground font-normal ml-1">(Optional)</span></Label>
+                <Input 
+                  id="paymentAmount" 
+                  type="number" 
+                  placeholder="e.g. 500"
+                  className="h-9 text-sm" 
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                />
+              </div>
             </div>
           )}
 
           {/* Step 2 Form */}
           {step === 2 && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="flex items-center justify-between gap-4">
-                <div className="relative flex-1 max-w-sm">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <div className="relative flex-1 max-w-[280px]">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                   <Input 
                     placeholder="Search employees..." 
-                    className="pl-9 h-10"
+                    className="pl-8 h-8 text-xs"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <div className="text-sm font-medium text-slate-600">
+                <div className="text-xs font-medium text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">
                   {selectedEmployees.length} selected
                 </div>
               </div>
 
-              <div className="border rounded-lg divide-y max-h-[400px] overflow-y-auto">
-                <div className="p-3 bg-slate-50 flex items-center gap-3 hover:bg-slate-100 transition-colors cursor-pointer" onClick={toggleAll}>
+              <div className="border rounded-md max-h-[250px] overflow-y-auto">
+                <div className="p-2 border-b bg-slate-50 flex items-center gap-2 hover:bg-slate-100 transition-colors cursor-pointer sticky top-0 z-10" onClick={toggleAll}>
                   <Checkbox 
                     checked={filteredEmployees.length > 0 && selectedEmployees.length === filteredEmployees.length}
-                    className="pointer-events-none"
+                    className="pointer-events-none w-4 h-4"
                   />
-                  <span className="text-sm font-semibold text-slate-700">Select All Visible</span>
+                  <span className="text-xs font-semibold text-slate-700">Select All Visible</span>
                 </div>
                 {filteredEmployees.length === 0 ? (
-                  <div className="p-8 text-center text-slate-500">No employees found.</div>
+                  <div className="p-6 text-center text-slate-500 text-xs">No employees found.</div>
                 ) : (
-                  filteredEmployees.map(emp => (
-                    <label key={emp.id} className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer transition-colors">
-                      <Checkbox 
-                        checked={selectedEmployees.includes(emp.id)}
-                        onCheckedChange={() => toggleEmployee(emp.id)}
-                      />
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{emp.users?.full_name}</p>
-                        <p className="text-xs text-slate-500">{emp.employee_code}</p>
-                      </div>
-                    </label>
-                  ))
+                  <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+                    {filteredEmployees.map(emp => (
+                      <label key={emp.id} className="flex items-center gap-2.5 p-2.5 hover:bg-slate-50/80 cursor-pointer transition-colors border-b border-slate-100">
+                        <Checkbox 
+                          checked={selectedEmployees.includes(emp.id)}
+                          onCheckedChange={() => toggleEmployee(emp.id)}
+                          className="w-4 h-4"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium text-slate-900 truncate">{emp.users?.full_name}</p>
+                          <p className="text-[10px] text-slate-500 truncate">{emp.employee_code}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
@@ -283,36 +300,42 @@ export function WizardClient({ branches, employees }: WizardClientProps) {
 
           {/* Step 3 Form */}
           {step === 3 && (
-            <div className="space-y-6">
-              <div className="bg-slate-50 border rounded-lg p-6 space-y-4">
-                <h3 className="text-base font-semibold text-slate-900 border-b pb-2">Shift Summary</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-4">
+              <div className="bg-slate-50 border rounded-md p-4 space-y-3">
+                <h3 className="text-sm font-semibold text-slate-900 border-b border-slate-200 pb-1.5">Shift Summary</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Date</p>
-                    <p className="text-sm font-medium text-slate-900 mt-1">{date ? new Date(date).toLocaleDateString() : ''}</p>
+                    <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Date</p>
+                    <p className="text-xs font-medium text-slate-900 mt-0.5">{date ? new Date(date).toLocaleDateString() : ''}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Branch</p>
-                    <p className="text-sm font-medium text-slate-900 mt-1">{branchName}</p>
+                    <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Branch</p>
+                    <p className="text-xs font-medium text-slate-900 mt-0.5 truncate">{branchName}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Shift Type</p>
-                    <p className="text-sm font-medium text-slate-900 mt-1">{shiftTypeName}</p>
+                    <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Shift Type</p>
+                    <p className="text-xs font-medium text-slate-900 mt-0.5">{shiftTypeName}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Pay Amount</p>
+                    <p className="text-xs font-medium text-slate-900 mt-0.5">
+                      {paymentAmount ? `₹${paymentAmount}` : <span className="text-slate-400 italic">Default Rate</span>}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="border rounded-lg overflow-hidden">
-                <div className="bg-slate-50 px-4 py-3 border-b">
-                  <h3 className="text-sm font-semibold text-slate-900">
+              <div className="border rounded-md overflow-hidden">
+                <div className="bg-slate-50 px-3 py-2 border-b">
+                  <h3 className="text-xs font-semibold text-slate-900">
                     Assigning {selectedEmployees.length} Employee{selectedEmployees.length !== 1 ? 's' : ''}
                   </h3>
                 </div>
-                <div className="max-h-[250px] overflow-y-auto p-4 flex flex-wrap gap-2">
+                <div className="max-h-[150px] overflow-y-auto p-3 flex flex-wrap gap-1.5">
                   {selectedEmployees.map(empId => {
                     const emp = employees.find(e => e.id === empId);
                     return (
-                      <div key={empId} className="bg-white border rounded-full px-3 py-1 text-xs font-medium shadow-sm">
+                      <div key={empId} className="bg-white border rounded px-2 py-0.5 text-[11px] font-medium shadow-sm text-slate-700">
                         {emp?.users?.full_name}
                       </div>
                     );
@@ -324,7 +347,7 @@ export function WizardClient({ branches, employees }: WizardClientProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 sm:p-6 bg-slate-50 border-t flex items-center justify-between">
+        <div className="p-3 sm:p-4 bg-slate-50 border-t flex items-center justify-between">
           <Button 
             variant="ghost" 
             onClick={handleBack} 
@@ -338,19 +361,21 @@ export function WizardClient({ branches, employees }: WizardClientProps) {
           {step < 3 ? (
             <Button 
               onClick={handleNext}
-              className="bg-[#0f172a] hover:bg-[#1e293b] px-6"
+              size="sm"
+              className="bg-[#0f172a] hover:bg-[#1e293b] px-5 h-8 text-xs"
             >
               Next Step
-              <ArrowRight className="w-4 h-4 ml-2" />
+              <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
             </Button>
           ) : (
             <Button 
               onClick={handleSubmit} 
               disabled={loading}
-              className="bg-[#0f172a] hover:bg-[#1e293b] px-6"
+              size="sm"
+              className="bg-[#0f172a] hover:bg-[#1e293b] px-5 h-8 text-xs"
             >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Confirm & Create Assignments
+              {loading && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              Confirm & Create
             </Button>
           )}
         </div>

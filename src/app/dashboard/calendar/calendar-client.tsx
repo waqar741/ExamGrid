@@ -11,8 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { EventDayModal } from './event-day-modal';
-import { RequestShiftModal } from './request-shift-modal';
-import { ChevronLeft, ChevronRight, CalendarPlus } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CalendarClientProps {
   initialEvents: any[];
@@ -33,7 +32,6 @@ export function CalendarClient({
 }: CalendarClientProps) {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -150,15 +148,6 @@ export function CalendarClient({
               ))}
             </SelectContent>
           </Select>
-          
-          {role === 'employee' && (
-            <Button 
-              onClick={() => setIsRequestModalOpen(true)}
-              className="h-12 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm flex-shrink-0"
-            >
-              <CalendarPlus className="h-5 w-5" />
-            </Button>
-          )}
         </div>
 
         {/* Days of week */}
@@ -291,16 +280,6 @@ export function CalendarClient({
               ))}
             </SelectContent>
           </Select>
-
-          {role === 'employee' && (
-            <Button 
-              onClick={() => setIsRequestModalOpen(true)}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white gap-2"
-            >
-              <CalendarPlus className="h-4 w-4" />
-              Request Shift
-            </Button>
-          )}
         </div>
       </div>
 
@@ -365,12 +344,6 @@ export function CalendarClient({
         }) : []}
         onClose={() => setSelectedDate(null)} 
         role={role}
-      />
-
-      <RequestShiftModal 
-        isOpen={isRequestModalOpen} 
-        onClose={() => setIsRequestModalOpen(false)} 
-        branches={branches} 
       />
     </>
   );

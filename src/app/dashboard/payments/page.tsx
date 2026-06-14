@@ -1,8 +1,9 @@
-import { getBranchDateSettlements } from '@/app/actions/payments';
+import { getEmployeePayments, getAdminPaymentRequests } from '@/app/actions/payments';
 import { getAllBranches } from '@/app/actions/branches';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { PaymentsClient } from './payments-client';
+import { EmployeePaymentsClient } from './employee-payments-client';
 
 interface PageProps {
   searchParams: Promise<{
@@ -22,41 +23,66 @@ export default async function PaymentsPage({ searchParams }: PageProps) {
     redirect('/login');
   }
 
-  // Employees should use their Settings "My Payments" tab
+  const params = await searchParams;
+  const page = parseInt(params.page || '1', 10);
+  const pageSize = parseInt(params.pageSize || '15', 10);
+  const search = params.search || '';
+  const dateFrom = params.dateFrom || '';
+  const dateTo = params.dateTo || '';
+  const branchId = params.branch || 'all';
+  const status = params.status || 'all';
+
   if (session.role === 'employee') {
-    redirect('/dashboard/settings?tab=payments');
+    const [{ data, total, summary }, branches] = await Promise.all([
+      getEmployeePayments({
+        page,
+        pageSize,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+        status: status || undefined,
+      }),
+      getAllBranches(),
+    ]);
+
+    return (
+      <div className="space-y-6">
+        <EmployeePaymentsClient
+          initialData={data}
+          totalCount={total}
+          currentPage={page}
+          pageSize={pageSize}
+          summary={summary}
+          branches={branches}
+          filters={{ dateFrom, dateTo, status }}
+        />
+      </div>
+    );
   }
 
-  const resolvedParams = await searchParams;
-  const page = parseInt(resolvedParams.page || '1', 10);
-  const pageSize = parseInt(resolvedParams.pageSize || '15', 10);
-  const search = resolvedParams.search || '';
-  const dateFrom = resolvedParams.dateFrom || '';
-  const dateTo = resolvedParams.dateTo || '';
-  const branchId = resolvedParams.branch || 'all';
-  const status = resolvedParams.status || 'all';
-
-  const { data: settlements, total, summary } = await getBranchDateSettlements({
-    page,
-    pageSize,
-    search,
-    dateFrom: dateFrom || undefined,
-    dateTo: dateTo || undefined,
-    branchId: branchId || undefined,
-    status: status || undefined,
-  });
-
-  const branches = await getAllBranches();
+  // Admin / Super Admin view
+  const [paymentResult, branches] = await Promise.all([
+    getAdminPaymentRequests({
+      page,
+      pageSize,
+      search,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      branchId: branchId || undefined,
+      status: status || undefined,
+    }),
+    getAllBranches(),
+  ]);
 
   return (
     <div className="space-y-6">
       <PaymentsClient
-        initialData={settlements}
-        totalCount={total}
+        initialData={paymentResult.data}
+        totalCount={paymentResult.total}
         currentPage={page}
         pageSize={pageSize}
-        summary={summary}
+        summary={paymentResult.summary}
         branches={branches}
+        filters={{ search, dateFrom, dateTo, branch: branchId, status }}
       />
     </div>
   );

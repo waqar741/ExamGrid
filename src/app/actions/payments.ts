@@ -6,30 +6,289 @@ import { revalidatePath } from 'next/cache';
 
 // ─── Types ───────────────────────────────────────────────────────────
 
-export interface BranchDateSettlement {
-  shiftDate: string;
-  branchId: string;
-  branchName: string;
-  assigned: number;
-  present: number;
-  absent: number;
-  payable: number;
-  totalAmount: number;
-  paidAmount: number;
-  status: 'pending' | 'partially_paid' | 'paid';
-  shiftScheduleIds: string[];
+export type PaymentStatus = 'not_requested' | 'requested' | 'approved' | 'rejected' | 'paid';
+
+export interface EmployeePaymentItem {
+  id: string;            // assignment id (used for requesting payment)
+  paymentId: string | null;
+  date: string;
+  branch: string;
+  shiftType: string;
+  attendance: string;
+  amount: number;
+  paymentRate: number;
+  status: PaymentStatus | 'absent' | 'not_marked';
+  paymentDate: string | null;
+  requestedAt: string | null;
+  remarks: string | null;
 }
 
-export interface SettlementSummary {
-  totalPending: number;
+export interface EmployeePaymentSummary {
+  totalEarned: number;
   totalPaid: number;
-  pendingSettlements: number;
-  paidSettlements: number;
+  totalPending: number;
+  totalShifts: number;
 }
 
-// ─── Admin: Branch/Date Settlement List ──────────────────────────────
+export interface AdminPaymentRequest {
+  paymentId: string;
+  assignmentId: string;
+  employeeName: string;
+  date: string;
+  branch: string;
+  shiftType: string;
+  attendance: string;
+  amount: number;
+  paymentRate: number;
+  status: PaymentStatus;
+  requestedAt: string | null;
+  requestedRemarks: string | null;
+  paymentDate: string | null;
+  remarks: string | null;
+  createdAt: string;
+  canEdit: boolean;
+  editTimeRemaining: string | null;
+}
 
-export async function getBranchDateSettlements(options?: {
+export interface AdminPaymentSummary {
+  totalRequested: number;
+  totalApproved: number;
+  totalPaid: number;
+  pendingReviews: number;
+  requestedCount: number;
+  approvedCount: number;
+  paidCount: number;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────
+
+function formatShiftType(raw: string): string {
+  if (!raw) return 'N/A';
+  return raw.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function getEditTimeInfo(createdAt: string): { canEdit: boolean; remaining: string | null } {
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now.getTime() - created.getTime();
+  const sixHoursMs = 6 * 60 * 60 * 1000;
+
+  if (diffMs > sixHoursMs) {
+    return { canEdit: false, remaining: null };
+  }
+
+  const remainingMs = sixHoursMs - diffMs;
+  const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+  const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+  return { canEdit: true, remaining: `${hours}h ${minutes}m remaining` };
+}
+
+// ─── Employee: Get Payments ──────────────────────────────────────────
+
+export async function getEmployeePayments(options?: {
+  page?: number;
+  pageSize?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  status?: string;
+}) {
+  const session = await getSession();
+  if (!session) {
+    return { data: [] as EmployeePaymentItem[], total: 0, summary: { totalEarned: 0, totalPaid: 0, totalPending: 0, totalShifts: 0 } as EmployeePaymentSummary };
+  }
+
+  const page = options?.page || 1;
+  const pageSize = options?.pageSize || 15;
+  const statusFilter = options?.status;
+
+  // Fetch assignments for this employee
+  let query = supabase
+    .from('assignments')
+    .select(`
+      id,
+      payment_snapshot,
+      assignment_status,
+      shift_schedules!inner (shift_date, shift_type, branches (name)),
+      attendance (attendance_status),
+      payments (id, amount, payment_status, payment_date, requested_at, requested_remarks, remarks, created_at)
+    `)
+    .eq('employee_id', session.userId)
+    .in('assignment_status', ['assigned', 'completed'])
+    .order('created_at', { ascending: false });
+
+  // Apply date filters on shift_schedules
+  if (options?.dateFrom) {
+    query = query.gte('shift_schedules.shift_date', options.dateFrom);
+  }
+  if (options?.dateTo) {
+    query = query.lte('shift_schedules.shift_date', options.dateTo);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Error fetching employee payments:', error);
+    return { data: [] as EmployeePaymentItem[], total: 0, summary: { totalEarned: 0, totalPaid: 0, totalPending: 0, totalShifts: 0 } as EmployeePaymentSummary };
+  }
+
+  let allItems: EmployeePaymentItem[] = (data || []).map((a: any) => {
+    const attStatus = a.attendance?.[0]?.attendance_status;
+    const isPresent = attStatus === 'present' || attStatus === 'late';
+    const paymentRate = Number(a.payment_snapshot) || 0;
+    const payment = a.payments?.[0];
+    const amount = payment ? Number(payment.amount) : (isPresent ? paymentRate : 0);
+
+    let status: EmployeePaymentItem['status'];
+    if (!isPresent) {
+      status = attStatus === 'absent' ? 'absent' : 'not_marked';
+    } else if (!payment) {
+      status = 'not_requested';
+    } else {
+      status = payment.payment_status as PaymentStatus;
+    }
+
+    return {
+      id: a.id,
+      paymentId: payment?.id || null,
+      date: a.shift_schedules?.shift_date || '',
+      branch: a.shift_schedules?.branches?.name || 'Unknown',
+      shiftType: formatShiftType(a.shift_schedules?.shift_type || ''),
+      attendance: attStatus || 'not_marked',
+      amount,
+      paymentRate,
+      status,
+      paymentDate: payment?.payment_date || null,
+      requestedAt: payment?.requested_at || null,
+      remarks: payment?.remarks || payment?.requested_remarks || null,
+    };
+  });
+
+  // Apply status filter
+  if (statusFilter && statusFilter !== 'all') {
+    allItems = allItems.filter(i => i.status === statusFilter);
+  }
+
+  // Sort by date descending
+  allItems.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  // Summary from ALL filtered items (before pagination)
+  const summary: EmployeePaymentSummary = {
+    totalEarned: allItems.filter(i => i.status !== 'absent' && i.status !== 'not_marked').reduce((sum, i) => sum + i.amount, 0),
+    totalPaid: allItems.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0),
+    totalPending: allItems.filter(i => i.status === 'requested' || i.status === 'approved' || i.status === 'not_requested').reduce((sum, i) => sum + i.amount, 0),
+    totalShifts: allItems.filter(i => i.attendance === 'present' || i.attendance === 'late').length,
+  };
+
+  // Paginate
+  const total = allItems.length;
+  const from = (page - 1) * pageSize;
+  const paginated = allItems.slice(from, from + pageSize);
+
+  return { data: paginated, total, summary };
+}
+
+// ─── Employee: Request Payment ───────────────────────────────────────
+
+export async function requestPayment(assignmentId: string, remarks?: string) {
+  const session = await getSession();
+  if (!session || session.role !== 'employee') {
+    return { error: 'Unauthorized' };
+  }
+
+  // Verify assignment belongs to this employee
+  const { data: assignment, error: assignError } = await supabase
+    .from('assignments')
+    .select(`
+      id, employee_id, payment_snapshot, assignment_status,
+      attendance (attendance_status),
+      payments (id, payment_status)
+    `)
+    .eq('id', assignmentId)
+    .single();
+
+  if (assignError || !assignment) {
+    return { error: 'Assignment not found' };
+  }
+
+  if (assignment.employee_id !== session.userId) {
+    return { error: 'Unauthorized — you can only request payment for your own shifts' };
+  }
+
+  // Check attendance — must be present or late
+  const attStatus = (assignment.attendance as any[])?.[0]?.attendance_status;
+  if (attStatus !== 'present' && attStatus !== 'late') {
+    return { error: 'Payment can only be requested for shifts where you were marked Present or Late' };
+  }
+
+  const existingPayment = (assignment.payments as any[])?.[0];
+
+  if (existingPayment) {
+    if (existingPayment.payment_status === 'paid') {
+      return { error: 'This shift has already been paid' };
+    }
+    if (existingPayment.payment_status === 'requested') {
+      return { error: 'Payment has already been requested for this shift' };
+    }
+    if (existingPayment.payment_status === 'approved') {
+      return { error: 'Payment has already been approved for this shift' };
+    }
+
+    // Update to requested (handles not_requested and rejected statuses)
+    const { error } = await supabase
+      .from('payments')
+      .update({
+        payment_status: 'requested',
+        requested_at: new Date().toISOString(),
+        requested_remarks: remarks || null,
+      })
+      .eq('id', existingPayment.id);
+
+    if (error) return { error: 'Failed to request payment' };
+
+    // Audit log
+    await supabase.from('audit_logs').insert([{
+      user_id: session.userId,
+      entity_type: 'payments',
+      entity_id: existingPayment.id,
+      action: 'PAYMENT_REQUESTED',
+      old_values: { payment_status: existingPayment.payment_status },
+      new_values: { payment_status: 'requested', requested_remarks: remarks || null },
+    }]);
+  } else {
+    // Create new payment record
+    const amount = Number(assignment.payment_snapshot) || 0;
+    const { data: newPayment, error } = await supabase
+      .from('payments')
+      .insert([{
+        assignment_id: assignmentId,
+        amount,
+        payment_status: 'requested',
+        requested_at: new Date().toISOString(),
+        requested_remarks: remarks || null,
+        created_by: session.userId,
+      }])
+      .select('id')
+      .single();
+
+    if (error) return { error: 'Failed to request payment' };
+
+    // Audit log
+    await supabase.from('audit_logs').insert([{
+      user_id: session.userId,
+      entity_type: 'payments',
+      entity_id: newPayment?.id || assignmentId,
+      action: 'PAYMENT_REQUESTED',
+      new_values: { payment_status: 'requested', amount, requested_remarks: remarks || null },
+    }]);
+  }
+
+  revalidatePath('/dashboard/payments');
+  return { success: true };
+}
+
+// ─── Admin: Get Payment Requests ─────────────────────────────────────
+
+export async function getAdminPaymentRequests(options?: {
   page?: number;
   pageSize?: number;
   search?: string;
@@ -40,394 +299,542 @@ export async function getBranchDateSettlements(options?: {
 }) {
   const session = await getSession();
   if (!session || session.role === 'employee') {
-    return { data: [], total: 0, summary: { totalPending: 0, totalPaid: 0, pendingSettlements: 0, paidSettlements: 0 } };
+    return { data: [] as AdminPaymentRequest[], total: 0, summary: { totalRequested: 0, totalApproved: 0, totalPaid: 0, pendingReviews: 0, requestedCount: 0, approvedCount: 0, paidCount: 0 } as AdminPaymentSummary };
   }
 
   const page = options?.page || 1;
-  const pageSize = options?.pageSize || 10;
+  const pageSize = options?.pageSize || 15;
   const search = (options?.search || '').toLowerCase();
-  const dateFrom = options?.dateFrom;
-  const dateTo = options?.dateTo;
-  const branchId = options?.branchId;
   const statusFilter = options?.status;
 
-  // Fetch all shift_schedules with their assignments, attendance, and payments
+  // Fetch all payments with joined data
   let query = supabase
-    .from('shift_schedules')
+    .from('payments')
     .select(`
       id,
-      shift_date,
-      shift_type,
-      branch_id,
-      required_staff_count,
-      branches!inner (id, name),
-      assignments (
+      amount,
+      payment_status,
+      payment_date,
+      requested_at,
+      requested_remarks,
+      remarks,
+      created_at,
+      assignments!inner (
         id,
-        employee_id,
-        assignment_status,
         payment_snapshot,
-        attendance (attendance_status),
-        payments (id, amount, payment_status)
+        assignment_status,
+        employee_id,
+        employees!inner (users!inner (full_name)),
+        shift_schedules!inner (shift_date, shift_type, branch_id, branches!inner (name)),
+        attendance (attendance_status)
       )
     `)
-    .eq('is_active', true)
-    .order('shift_date', { ascending: false });
+    .order('created_at', { ascending: false });
 
-  if (dateFrom) query = query.gte('shift_date', dateFrom);
-  if (dateTo) query = query.lte('shift_date', dateTo);
-  if (branchId && branchId !== 'all') query = query.eq('branch_id', branchId);
+  // Apply date filters
+  if (options?.dateFrom) {
+    query = query.gte('assignments.shift_schedules.shift_date', options.dateFrom);
+  }
+  if (options?.dateTo) {
+    query = query.lte('assignments.shift_schedules.shift_date', options.dateTo);
+  }
+  if (options?.branchId && options.branchId !== 'all') {
+    query = query.eq('assignments.shift_schedules.branch_id', options.branchId);
+  }
 
-  const { data: schedules, error } = await query;
+  const { data, error } = await query;
 
   if (error) {
-    console.error('Error fetching settlements:', error);
-    return { data: [], total: 0, summary: { totalPending: 0, totalPaid: 0, pendingSettlements: 0, paidSettlements: 0 } };
+    console.error('Error fetching admin payment requests:', error);
+    return { data: [] as AdminPaymentRequest[], total: 0, summary: { totalRequested: 0, totalApproved: 0, totalPaid: 0, pendingReviews: 0, requestedCount: 0, approvedCount: 0, paidCount: 0 } as AdminPaymentSummary };
   }
 
-  // Group by (shift_date, branch_id)
-  const groupMap = new Map<string, BranchDateSettlement>();
+  let allItems: AdminPaymentRequest[] = (data || []).map((p: any) => {
+    const assignment = p.assignments;
+    const attStatus = assignment?.attendance?.[0]?.attendance_status || 'not_marked';
+    const editInfo = getEditTimeInfo(p.created_at);
 
-  for (const schedule of (schedules || [])) {
-    const branch = schedule.branches as any;
-    const key = `${schedule.shift_date}_${schedule.branch_id}`;
+    return {
+      paymentId: p.id,
+      assignmentId: assignment?.id || '',
+      employeeName: assignment?.employees?.users?.full_name || 'Unknown',
+      date: assignment?.shift_schedules?.shift_date || '',
+      branch: assignment?.shift_schedules?.branches?.name || 'Unknown',
+      shiftType: formatShiftType(assignment?.shift_schedules?.shift_type || ''),
+      attendance: attStatus,
+      amount: Number(p.amount) || 0,
+      paymentRate: Number(assignment?.payment_snapshot) || 0,
+      status: p.payment_status as PaymentStatus,
+      requestedAt: p.requested_at || null,
+      requestedRemarks: p.requested_remarks || null,
+      paymentDate: p.payment_date || null,
+      remarks: p.remarks || null,
+      createdAt: p.created_at,
+      canEdit: editInfo.canEdit,
+      editTimeRemaining: editInfo.remaining,
+    };
+  });
 
-    if (!groupMap.has(key)) {
-      groupMap.set(key, {
-        shiftDate: schedule.shift_date,
-        branchId: schedule.branch_id,
-        branchName: branch?.name || 'Unknown',
-        assigned: 0,
-        present: 0,
-        absent: 0,
-        payable: 0,
-        totalAmount: 0,
-        paidAmount: 0,
-        status: 'pending',
-        shiftScheduleIds: []
-      });
-    }
-
-    const group = groupMap.get(key)!;
-    group.shiftScheduleIds.push(schedule.id);
-
-    const assignments = (schedule.assignments || []) as any[];
-    for (const assignment of assignments) {
-      if (assignment.assignment_status === 'replaced' || assignment.assignment_status === 'removed' || assignment.assignment_status === 'pending') continue;
-
-      group.assigned++;
-
-      const attStatus = assignment.attendance?.[0]?.attendance_status;
-      if (attStatus === 'present' || attStatus === 'late') {
-        group.present++;
-        const amount = Number(assignment.payment_snapshot) || 0;
-        if (amount > 0) {
-          group.payable++;
-          group.totalAmount += amount;
-        }
-      } else if (attStatus === 'absent') {
-        group.absent++;
-      }
-
-      // Check payment status
-      const payment = assignment.payments?.[0];
-      if (payment && payment.payment_status === 'paid') {
-        group.paidAmount += Number(payment.amount) || 0;
-      }
-    }
-  }
-
-  // Calculate status for each group
-  let allSettlements = Array.from(groupMap.values());
-  for (const s of allSettlements) {
-    if (s.payable === 0) {
-      s.status = s.assigned > 0 ? 'pending' : 'pending';
-    } else if (s.paidAmount >= s.totalAmount && s.totalAmount > 0) {
-      s.status = 'paid';
-    } else if (s.paidAmount > 0) {
-      s.status = 'partially_paid';
-    } else {
-      s.status = 'pending';
-    }
-  }
-
-  // Filter by search (branch name)
+  // Filter by search (employee name)
   if (search) {
-    allSettlements = allSettlements.filter(s => s.branchName.toLowerCase().includes(search));
+    allItems = allItems.filter(i => i.employeeName.toLowerCase().includes(search));
   }
 
   // Filter by status
   if (statusFilter && statusFilter !== 'all') {
-    allSettlements = allSettlements.filter(s => s.status === statusFilter);
+    allItems = allItems.filter(i => i.status === statusFilter);
   }
 
-  // Sort by date descending
-  allSettlements.sort((a, b) => b.shiftDate.localeCompare(a.shiftDate));
+  // Sort by date descending, then by requested_at descending
+  allItems.sort((a, b) => {
+    const dateComp = (b.date || '').localeCompare(a.date || '');
+    if (dateComp !== 0) return dateComp;
+    return (b.requestedAt || b.createdAt || '').localeCompare(a.requestedAt || a.createdAt || '');
+  });
 
-  // Calculate summary from ALL filtered settlements (before pagination)
-  const summary: SettlementSummary = {
-    totalPending: allSettlements.filter(s => s.status !== 'paid').reduce((sum, s) => sum + (s.totalAmount - s.paidAmount), 0),
-    totalPaid: allSettlements.reduce((sum, s) => sum + s.paidAmount, 0),
-    pendingSettlements: allSettlements.filter(s => s.status !== 'paid').length,
-    paidSettlements: allSettlements.filter(s => s.status === 'paid').length,
+  // Summary from ALL filtered items
+  const summary: AdminPaymentSummary = {
+    totalRequested: allItems.filter(i => i.status === 'requested').reduce((s, i) => s + i.amount, 0),
+    totalApproved: allItems.filter(i => i.status === 'approved').reduce((s, i) => s + i.amount, 0),
+    totalPaid: allItems.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0),
+    pendingReviews: allItems.filter(i => i.status === 'requested').length,
+    requestedCount: allItems.filter(i => i.status === 'requested').length,
+    approvedCount: allItems.filter(i => i.status === 'approved').length,
+    paidCount: allItems.filter(i => i.status === 'paid').length,
   };
 
   // Paginate
-  const total = allSettlements.length;
+  const total = allItems.length;
   const from = (page - 1) * pageSize;
-  const paginated = allSettlements.slice(from, from + pageSize);
+  const paginated = allItems.slice(from, from + pageSize);
 
   return { data: paginated, total, summary };
 }
 
-// ─── Admin: Branch/Date Detail ───────────────────────────────────────
+// ─── Admin: Get Payment Detail (for review modal) ────────────────────
 
-export async function getBranchDateDetail(branchId: string, shiftDate: string) {
+export async function getPaymentDetail(paymentId: string) {
   const session = await getSession();
   if (!session || session.role === 'employee') {
-    return { employees: [], branchName: '', totalPayable: 0, totalPaid: 0 };
+    return { error: 'Unauthorized' };
   }
 
-  const { data: schedules, error } = await supabase
-    .from('shift_schedules')
+  const { data: payment, error } = await supabase
+    .from('payments')
     .select(`
       id,
-      shift_type,
-      branches (name),
+      amount,
+      payment_status,
+      payment_date,
+      requested_at,
+      requested_remarks,
+      remarks,
+      created_at,
       assignments (
         id,
-        employee_id,
-        assignment_status,
         payment_snapshot,
         employees (users (full_name)),
-        attendance (attendance_status),
-        payments (id, amount, payment_status, payment_date)
+        shift_schedules (shift_date, shift_type, branches (name)),
+        attendance (attendance_status)
       )
     `)
-    .eq('branch_id', branchId)
-    .eq('shift_date', shiftDate)
-    .eq('is_active', true);
+    .eq('id', paymentId)
+    .single();
 
-  if (error || !schedules) {
-    console.error('Error fetching branch detail:', error);
-    return { employees: [], branchName: '', totalPayable: 0, totalPaid: 0 };
+  if (error || !payment) {
+    return { error: 'Payment not found' };
   }
 
-  const branchName = (schedules[0]?.branches as any)?.name || 'Unknown';
-  const employees: any[] = [];
-  let totalPayable = 0;
-  let totalPaid = 0;
+  const assignment = payment.assignments as any;
+  const editInfo = getEditTimeInfo(payment.created_at);
 
-  for (const schedule of schedules) {
-    const assignments = (schedule.assignments || []) as any[];
-    for (const assignment of assignments) {
-      if (assignment.assignment_status === 'replaced' || assignment.assignment_status === 'removed' || assignment.assignment_status === 'pending') continue;
+  // Get audit history for this payment
+  const { data: auditLogs } = await supabase
+    .from('audit_logs')
+    .select('action, old_values, new_values, created_at, users(full_name)')
+    .eq('entity_type', 'payments')
+    .eq('entity_id', paymentId)
+    .order('created_at', { ascending: true });
 
-      const attStatus = assignment.attendance?.[0]?.attendance_status || null;
-      const isPresent = attStatus === 'present' || attStatus === 'late';
-      const isAbsent = attStatus === 'absent';
-      const amount = isPresent ? (Number(assignment.payment_snapshot) || 0) : 0;
-      const payment = assignment.payments?.[0];
-      const paymentStatus = isAbsent ? 'n/a' : (payment?.payment_status || 'pending');
-
-      if (isPresent && amount > 0) totalPayable += amount;
-      if (payment?.payment_status === 'paid') totalPaid += Number(payment.amount) || 0;
-
-      employees.push({
-        assignmentId: assignment.id,
-        employeeName: assignment.employees?.users?.full_name || 'Unknown',
-        shiftType: schedule.shift_type,
-        attendance: attStatus || 'not_marked',
-        amount,
-        paymentStatus,
-        paymentId: payment?.id || null,
-      });
-    }
-  }
-
-  // Sort: present first, then absent, then not marked
-  const order: Record<string, number> = { present: 0, late: 1, absent: 2, not_marked: 3 };
-  employees.sort((a, b) => (order[a.attendance] ?? 9) - (order[b.attendance] ?? 9));
-
-  return { employees, branchName, totalPayable, totalPaid };
+  return {
+    paymentId: payment.id,
+    employeeName: assignment?.employees?.users?.full_name || 'Unknown',
+    date: assignment?.shift_schedules?.shift_date || '',
+    branch: assignment?.shift_schedules?.branches?.name || 'Unknown',
+    shiftType: formatShiftType(assignment?.shift_schedules?.shift_type || ''),
+    attendance: assignment?.attendance?.[0]?.attendance_status || 'not_marked',
+    amount: Number(payment.amount) || 0,
+    paymentRate: Number(assignment?.payment_snapshot) || 0,
+    status: payment.payment_status as PaymentStatus,
+    requestedAt: payment.requested_at,
+    requestedRemarks: payment.requested_remarks,
+    paymentDate: payment.payment_date,
+    remarks: payment.remarks,
+    createdAt: payment.created_at,
+    canEdit: editInfo.canEdit,
+    editTimeRemaining: editInfo.remaining,
+    history: (auditLogs || []).map((log: any) => ({
+      action: log.action,
+      by: log.users?.full_name || 'System',
+      at: log.created_at,
+      oldValues: log.old_values,
+      newValues: log.new_values,
+    })),
+  };
 }
 
-// ─── Admin: Mark Branch Paid (Bulk) ──────────────────────────────────
+// ─── Admin: Approve Payment ──────────────────────────────────────────
 
-export async function markBranchPaid(branchId: string, shiftDate: string, paymentDate: string, remarks: string) {
+export async function approvePayment(paymentId: string) {
   const session = await getSession();
   if (!session || session.role === 'employee') {
     return { error: 'Unauthorized' };
   }
 
-  // Get all assignments for this branch/date that are present/late and have pending payments
-  const { data: schedules } = await supabase
-    .from('shift_schedules')
-    .select(`
-      id,
-      assignments (
-        id,
-        assignment_status,
-        payment_snapshot,
-        attendance (attendance_status),
-        payments (id, payment_status)
-      )
-    `)
-    .eq('branch_id', branchId)
-    .eq('shift_date', shiftDate)
-    .eq('is_active', true);
+  const { data: payment } = await supabase
+    .from('payments')
+    .select('id, payment_status')
+    .eq('id', paymentId)
+    .single();
 
-  if (!schedules) return { error: 'No schedules found' };
-
-  let markedCount = 0;
-  let totalAmount = 0;
-
-  for (const schedule of schedules) {
-    const assignments = (schedule.assignments || []) as any[];
-    for (const assignment of assignments) {
-      if (assignment.assignment_status === 'replaced' || assignment.assignment_status === 'removed' || assignment.assignment_status === 'pending') continue;
-
-      const attStatus = assignment.attendance?.[0]?.attendance_status;
-      if (attStatus !== 'present' && attStatus !== 'late') continue;
-
-      const payment = assignment.payments?.[0];
-      if (!payment || payment.payment_status === 'paid') continue;
-
-      // Mark this payment as paid
-      const { error } = await supabase
-        .from('payments')
-        .update({
-          payment_status: 'paid',
-          payment_date: paymentDate,
-          remarks: remarks || 'Branch settlement',
-        })
-        .eq('id', payment.id);
-
-      if (!error) {
-        markedCount++;
-        totalAmount += Number(assignment.payment_snapshot) || 0;
-      }
-    }
+  if (!payment) return { error: 'Payment not found' };
+  if (payment.payment_status !== 'requested') {
+    return { error: `Cannot approve a payment with status "${payment.payment_status}"` };
   }
-
-  // Audit log
-  await supabase.from('audit_logs').insert([{
-    user_id: session.userId,
-    entity_type: 'payments',
-    entity_id: branchId,
-    action: 'BRANCH_SETTLEMENT',
-    new_values: {
-      branch_id: branchId,
-      shift_date: shiftDate,
-      payment_date: paymentDate,
-      marked_count: markedCount,
-      total_amount: totalAmount,
-      remarks
-    }
-  }]);
-
-  revalidatePath('/dashboard/payments');
-  return { success: true, markedCount, totalAmount };
-}
-
-// ─── Admin: Mark Single Payment Paid ─────────────────────────────────
-
-export async function markPaid(paymentId: string, paymentDate: string, remarks: string) {
-  const session = await getSession();
-  if (!session || session.role === 'employee') {
-    return { error: 'Unauthorized' };
-  }
-
-  const { data: oldPayment } = await supabase.from('payments').select('payment_status').eq('id', paymentId).single();
 
   const { error } = await supabase
     .from('payments')
-    .update({
-      payment_status: 'paid',
-      payment_date: paymentDate,
-      remarks: remarks || null
-    })
+    .update({ payment_status: 'approved', remarks: 'Approved by admin' })
     .eq('id', paymentId);
 
-  if (error) {
-    console.error('Error marking payment paid:', error);
-    return { error: 'Failed to process payment' };
-  }
+  if (error) return { error: 'Failed to approve payment' };
 
   await supabase.from('audit_logs').insert([{
     user_id: session.userId,
     entity_type: 'payments',
     entity_id: paymentId,
-    action: 'UPDATE',
-    old_values: { payment_status: oldPayment?.payment_status || 'pending' },
-    new_values: { payment_status: 'paid', payment_date: paymentDate, remarks }
+    action: 'PAYMENT_APPROVED',
+    old_values: { payment_status: 'requested' },
+    new_values: { payment_status: 'approved' },
   }]);
 
   revalidatePath('/dashboard/payments');
   return { success: true };
 }
 
-// ─── Employee: My Payments ───────────────────────────────────────────
+// ─── Admin: Reject Payment ──────────────────────────────────────────
 
-export async function getMyPayments(options?: {
-  page?: number;
-  pageSize?: number;
-}) {
+export async function rejectPayment(paymentId: string, reason?: string) {
   const session = await getSession();
-  if (!session) return { data: [], total: 0, summary: { totalEarned: 0, totalPaid: 0, totalPending: 0, totalShifts: 0 } };
-
-  const page = options?.page || 1;
-  const pageSize = options?.pageSize || 10;
-
-  // Get assignments for this employee with payment data
-  let query = supabase
-    .from('assignments')
-    .select(`
-      id,
-      payment_snapshot,
-      assignment_status,
-      shift_schedules (shift_date, shift_type, branches (name)),
-      attendance (attendance_status),
-      payments (id, amount, payment_status, payment_date)
-    `, { count: 'exact' })
-    .eq('employee_id', session.userId)
-    .in('assignment_status', ['assigned', 'completed'])
-    .order('created_at', { ascending: false });
-
-  const { data, error, count } = await query;
-
-  if (error) {
-    console.error('Error fetching my payments:', error);
-    return { data: [], total: 0, summary: { totalEarned: 0, totalPaid: 0, totalPending: 0, totalShifts: 0 } };
+  if (!session || session.role === 'employee') {
+    return { error: 'Unauthorized' };
   }
 
-  const allItems = (data || []).map((a: any) => {
-    const attStatus = a.attendance?.[0]?.attendance_status;
-    const isPresent = attStatus === 'present' || attStatus === 'late';
-    const amount = isPresent ? (Number(a.payment_snapshot) || 0) : 0;
-    const payment = a.payments?.[0];
+  const { data: payment } = await supabase
+    .from('payments')
+    .select('id, payment_status')
+    .eq('id', paymentId)
+    .single();
 
-    return {
-      id: a.id,
-      date: a.shift_schedules?.shift_date,
-      branch: a.shift_schedules?.branches?.name || 'Unknown',
-      shiftType: a.shift_schedules?.shift_type || 'N/A',
-      attendance: attStatus || 'not_marked',
-      amount,
-      status: !isPresent ? (attStatus === 'absent' ? 'absent' : 'not_marked') : (payment?.payment_status || 'pending'),
-    };
-  });
+  if (!payment) return { error: 'Payment not found' };
+  if (payment.payment_status !== 'requested') {
+    return { error: `Cannot reject a payment with status "${payment.payment_status}"` };
+  }
 
-  // Summary from ALL items (not paginated)
-  const summary = {
-    totalEarned: allItems.reduce((sum, i) => sum + i.amount, 0),
-    totalPaid: allItems.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0),
-    totalPending: allItems.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0),
-    totalShifts: allItems.filter(i => i.attendance === 'present' || i.attendance === 'late').length,
-  };
+  const { error } = await supabase
+    .from('payments')
+    .update({
+      payment_status: 'rejected',
+      remarks: reason || 'Rejected by admin',
+    })
+    .eq('id', paymentId);
 
-  // Paginate
-  const from = (page - 1) * pageSize;
-  const paginated = allItems.slice(from, from + pageSize);
+  if (error) return { error: 'Failed to reject payment' };
 
-  return { data: paginated, total: allItems.length, summary };
+  await supabase.from('audit_logs').insert([{
+    user_id: session.userId,
+    entity_type: 'payments',
+    entity_id: paymentId,
+    action: 'PAYMENT_REJECTED',
+    old_values: { payment_status: 'requested' },
+    new_values: { payment_status: 'rejected', reason: reason || null },
+  }]);
+
+  revalidatePath('/dashboard/payments');
+  return { success: true };
+}
+
+// ─── Admin: Mark Payment Paid ────────────────────────────────────────
+
+export async function markPaymentPaid(paymentId: string, paymentDate: string, remarks?: string) {
+  const session = await getSession();
+  if (!session || session.role === 'employee') {
+    return { error: 'Unauthorized' };
+  }
+
+  const { data: payment } = await supabase
+    .from('payments')
+    .select('id, payment_status')
+    .eq('id', paymentId)
+    .single();
+
+  if (!payment) return { error: 'Payment not found' };
+  if (payment.payment_status === 'paid') {
+    return { error: 'Payment is already marked as paid' };
+  }
+
+  const { error } = await supabase
+    .from('payments')
+    .update({
+      payment_status: 'paid',
+      payment_date: paymentDate,
+      remarks: remarks || 'Marked paid by admin',
+    })
+    .eq('id', paymentId);
+
+  if (error) return { error: 'Failed to mark payment as paid' };
+
+  await supabase.from('audit_logs').insert([{
+    user_id: session.userId,
+    entity_type: 'payments',
+    entity_id: paymentId,
+    action: 'PAYMENT_MARKED_PAID',
+    old_values: { payment_status: payment.payment_status },
+    new_values: { payment_status: 'paid', payment_date: paymentDate, remarks },
+  }]);
+
+  revalidatePath('/dashboard/payments');
+  return { success: true };
+}
+
+// ─── Admin: Update Payment ──────────────────────────────────────────
+
+export async function updatePayment(paymentId: string, amount: number, remarks?: string) {
+  const session = await getSession();
+  if (!session || session.role === 'employee') {
+    return { error: 'Unauthorized' };
+  }
+
+  const { data: payment } = await supabase
+    .from('payments')
+    .select('*')
+    .eq('id', paymentId)
+    .single();
+
+  if (!payment) return { error: 'Payment not found' };
+
+  // 6-hour edit window check
+  const editInfo = getEditTimeInfo(payment.created_at);
+  if (!editInfo.canEdit) {
+    return { error: 'Edit window expired — payments can only be edited within 6 hours of creation' };
+  }
+
+  const oldAmount = payment.amount;
+  const { error } = await supabase
+    .from('payments')
+    .update({ amount, remarks: remarks || payment.remarks })
+    .eq('id', paymentId);
+
+  if (error) return { error: 'Failed to update payment' };
+
+  await supabase.from('audit_logs').insert([{
+    user_id: session.userId,
+    entity_type: 'payments',
+    entity_id: paymentId,
+    action: 'PAYMENT_UPDATED',
+    old_values: { amount: oldAmount, remarks: payment.remarks },
+    new_values: { amount, remarks },
+  }]);
+
+  revalidatePath('/dashboard/payments');
+  return { success: true };
+}
+
+// ─── Admin: Delete Payment ──────────────────────────────────────────
+
+export async function deletePayment(paymentId: string) {
+  const session = await getSession();
+  if (!session || session.role === 'employee') {
+    return { error: 'Unauthorized' };
+  }
+
+  const { data: payment } = await supabase
+    .from('payments')
+    .select('*')
+    .eq('id', paymentId)
+    .single();
+
+  if (!payment) return { error: 'Payment not found' };
+
+  // 6-hour edit window check
+  const editInfo = getEditTimeInfo(payment.created_at);
+  if (!editInfo.canEdit) {
+    return { error: 'Edit window expired — payments can only be deleted within 6 hours of creation' };
+  }
+
+  const { error } = await supabase
+    .from('payments')
+    .delete()
+    .eq('id', paymentId);
+
+  if (error) return { error: 'Failed to delete payment' };
+
+  await supabase.from('audit_logs').insert([{
+    user_id: session.userId,
+    entity_type: 'payments',
+    entity_id: paymentId,
+    action: 'PAYMENT_DELETED',
+    old_values: payment,
+  }]);
+
+  revalidatePath('/dashboard/payments');
+  return { success: true };
+}
+
+// ─── Employee: Request Missing Shift ───────────────────────────────
+
+export async function requestMissingShift(branchId: string, shiftDate: string, shiftType: string, remarks?: string) {
+  const session = await getSession();
+  if (!session || session.role !== 'employee') {
+    return { error: 'Unauthorized. Only employees can request missing shifts.' };
+  }
+
+  // 1. Get employee ID
+  const { data: empData, error: empErr } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('user_id', session.userId)
+    .single();
+
+  if (empErr || !empData) return { error: 'Employee profile not found.' };
+
+  // 2. Find or create schedule
+  let scheduleId;
+  const { data: schedule } = await supabase
+    .from('shift_schedules')
+    .select('id')
+    .eq('branch_id', branchId)
+    .eq('shift_date', shiftDate)
+    .eq('shift_type', shiftType)
+    .single();
+
+  if (schedule) {
+    scheduleId = schedule.id;
+  } else {
+    const { data: newSchedule, error: newErr } = await supabase
+      .from('shift_schedules')
+      .insert({
+        branch_id: branchId,
+        shift_date: shiftDate,
+        shift_type: shiftType,
+        required_staff_count: 1,
+        created_by: session.userId
+      })
+      .select('id')
+      .single();
+    if (newErr) return { error: 'Failed to create shift schedule.' };
+    scheduleId = newSchedule.id;
+  }
+
+  // 3. Find or create assignment
+  let assignmentId;
+  let paymentSnapshot = 0;
+  
+  const { data: existingAssignment } = await supabase
+    .from('assignments')
+    .select('id, payment_snapshot')
+    .eq('shift_schedule_id', scheduleId)
+    .eq('employee_id', empData.id)
+    .single();
+
+  if (existingAssignment) {
+    assignmentId = existingAssignment.id;
+    paymentSnapshot = Number(existingAssignment.payment_snapshot) || 0;
+  } else {
+    // Get Payment Rate
+    const { data: rates } = await supabase
+      .from('branch_pay_rates')
+      .select('rate, effective_to')
+      .eq('branch_id', branchId)
+      .eq('shift_type', shiftType)
+      .lte('effective_from', shiftDate)
+      .order('effective_from', { ascending: false });
+
+    const activeRateData = rates?.find(r => !r.effective_to || r.effective_to >= shiftDate);
+    paymentSnapshot = activeRateData ? Number(activeRateData.rate) : 0;
+
+    const { data: newAssignment, error: assignErr } = await supabase
+      .from('assignments')
+      .insert({
+        shift_schedule_id: scheduleId,
+        employee_id: empData.id,
+        assignment_status: 'completed', // Marked as completed since they worked it
+        payment_snapshot: paymentSnapshot,
+        assigned_by: session.userId
+      })
+      .select('id')
+      .single();
+    
+    if (assignErr) return { error: 'Failed to create shift assignment.' };
+    assignmentId = newAssignment.id;
+  }
+
+  // 4. Ensure attendance is marked 'present'
+  const { data: existingAttendance } = await supabase
+    .from('attendance')
+    .select('id')
+    .eq('assignment_id', assignmentId)
+    .single();
+
+  if (!existingAttendance) {
+    await supabase
+      .from('attendance')
+      .insert({
+        assignment_id: assignmentId,
+        attendance_status: 'present',
+        remarks: 'Automatically marked via Missing Shift Request',
+        marked_by: session.userId
+      });
+  }
+
+  // 5. Check for existing payment
+  const { data: existingPayment } = await supabase
+    .from('payments')
+    .select('id, payment_status')
+    .eq('assignment_id', assignmentId)
+    .single();
+
+  if (existingPayment) {
+    if (['requested', 'approved', 'paid'].includes(existingPayment.payment_status)) {
+      return { error: `Payment is already ${existingPayment.payment_status} for this shift.` };
+    }
+    // Update existing payment to requested
+    const { error: updateErr } = await supabase
+      .from('payments')
+      .update({
+        payment_status: 'requested',
+        requested_at: new Date().toISOString(),
+        requested_remarks: remarks || null
+      })
+      .eq('id', existingPayment.id);
+      
+    if (updateErr) return { error: 'Failed to request payment.' };
+  } else {
+    // Create new payment record
+    const { error: insertErr } = await supabase
+      .from('payments')
+      .insert({
+        assignment_id: assignmentId,
+        amount: paymentSnapshot,
+        payment_status: 'requested',
+        requested_at: new Date().toISOString(),
+        requested_remarks: remarks || null,
+        created_by: session.userId
+      });
+
+    if (insertErr) return { error: 'Failed to create payment request.' };
+  }
+
+  revalidatePath('/dashboard/payments');
+  return { success: true };
 }

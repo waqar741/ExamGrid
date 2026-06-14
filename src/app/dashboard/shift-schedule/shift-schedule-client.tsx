@@ -210,7 +210,7 @@ export function ShiftScheduleClient({
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <Badge variant="outline" className="bg-slate-50">
-                          {shift.assignments?.filter((a: any) => a.payments?.some((p: any) => p.payment_status === 'paid')).length || 0} Paid
+                          ₹{shift.assignments?.reduce((sum: number, a: any) => sum + (a.payments?.filter((p: any) => p.payment_status === 'paid').reduce((pSum: number, p: any) => pSum + (Number(p.amount) || 0), 0) || 0), 0)} Paid
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">

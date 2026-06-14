@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { Lock, Shield, Palette, CheckCircle2, Loader2, User, IndianRupee } from 'lucide-react';
+import { Lock, Shield, Palette, CheckCircle2, Loader2, User } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -18,16 +18,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { updateUserProfile, changeUserPassword, verifyCurrentPassword } from '@/app/actions/auth';
-import { getMyPayments } from '@/app/actions/payments';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { TablePagination } from '@/components/ui/table-pagination';
+
 
 interface SettingsClientProps {
   user: {
@@ -168,34 +159,9 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
       localStorage.setItem('theme', value);
     }
   };
-
-  // My Payments state
-  const [paymentsData, setPaymentsData] = useState<any[]>([]);
-  const [paymentsSummary, setPaymentsSummary] = useState({ totalEarned: 0, totalPaid: 0, totalPending: 0, totalShifts: 0 });
-  const [paymentsTotal, setPaymentsTotal] = useState(0);
-  const [paymentsPage, setPaymentsPage] = useState(1);
-  const [paymentsLoading, setPaymentsLoading] = useState(false);
-  const paymentsPageSize = 10;
-
-  const fetchPayments = async (page: number) => {
-    setPaymentsLoading(true);
-    const res = await getMyPayments({ page, pageSize: paymentsPageSize });
-    setPaymentsData(res.data);
-    setPaymentsSummary(res.summary);
-    setPaymentsTotal(res.total);
-    setPaymentsLoading(false);
-  };
-
-  useEffect(() => {
-    if (activeTab === 'payments') {
-      fetchPayments(paymentsPage);
-    }
-  }, [activeTab, paymentsPage]);
-
   const tabs = [
     { id: 'personal', label: 'Personal Information', icon: User },
     { id: 'security', label: 'Security & Access', icon: Lock },
-    { id: 'payments', label: 'My Payments', icon: IndianRupee },
     { id: 'preferences', label: 'System Preferences', icon: Palette },
   ];
 
@@ -223,7 +189,7 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
       </div>
 
       {/* Main Content Area */}
-      {activeTab !== 'payments' && <div className="flex-1 w-full bg-card rounded-xl border shadow-sm">
+      <div className="flex-1 w-full bg-card rounded-xl border shadow-sm">
         {/* Personal Information Tab */}
         {activeTab === 'personal' && (
           <div className="p-6">
@@ -438,7 +404,7 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
           </div>
         )}
 
-      </div>}
+      </div>
 
       {/* Verification Modal */}
       <Dialog open={verifyAction !== null} onOpenChange={(open) => !open && setVerifyAction(null)}>
@@ -508,105 +474,7 @@ export function SettingsClient({ user, initialTab = 'personal' }: SettingsClient
           </form>
         </DialogContent>
       </Dialog>
-      {/* My Payments Tab */}
-      {activeTab === 'payments' && (
-        <div className="flex-1 w-full bg-card rounded-xl border shadow-sm">
-          <div className="p-6">
-            <h3 className="text-lg font-bold tracking-tight mb-6">My Payments</h3>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-              <div className="p-3 border rounded-lg">
-                <p className="text-[11px] text-muted-foreground">Total Earned</p>
-                <p className="text-lg font-bold">₹{paymentsSummary.totalEarned.toLocaleString()}</p>
-              </div>
-              <div className="p-3 border rounded-lg">
-                <p className="text-[11px] text-muted-foreground">Total Paid</p>
-                <p className="text-lg font-bold text-emerald-600">₹{paymentsSummary.totalPaid.toLocaleString()}</p>
-              </div>
-              <div className="p-3 border rounded-lg">
-                <p className="text-[11px] text-muted-foreground">Total Pending</p>
-                <p className="text-lg font-bold text-yellow-600">₹{paymentsSummary.totalPending.toLocaleString()}</p>
-              </div>
-              <div className="p-3 border rounded-lg">
-                <p className="text-[11px] text-muted-foreground">Total Shifts Worked</p>
-                <p className="text-lg font-bold">{paymentsSummary.totalShifts}</p>
-              </div>
-            </div>
-
-            {/* Payment History Table */}
-            {paymentsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">Date</TableHead>
-                        <TableHead className="text-xs">Branch</TableHead>
-                        <TableHead className="text-xs">Shift</TableHead>
-                        <TableHead className="text-xs text-right">Amount</TableHead>
-                        <TableHead className="text-xs">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paymentsData.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center h-24 text-muted-foreground text-xs">
-                            No payment records found.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        paymentsData.map((p: any) => (
-                          <TableRow key={p.id}>
-                            <TableCell className="text-xs font-medium">
-                              {p.date ? format(new Date(p.date), 'MMM d, yyyy') : '-'}
-                            </TableCell>
-                            <TableCell className="text-xs">{p.branch}</TableCell>
-                            <TableCell className="text-xs">{p.shiftType}</TableCell>
-                            <TableCell className="text-xs text-right font-bold">
-                              {p.amount > 0 ? `₹${p.amount.toLocaleString()}` : '₹0'}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                className={`text-[10px] capitalize ${
-                                  p.status === 'paid'
-                                    ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-emerald-200'
-                                    : p.status === 'pending'
-                                    ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-yellow-200'
-                                    : p.status === 'absent'
-                                    ? 'bg-red-100 text-red-600 hover:bg-red-100 border-red-200'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-100 border-slate-200'
-                                }`}
-                              >
-                                {p.status === 'n/a' ? 'Absent' : p.status === 'not_marked' ? 'Not Marked' : p.status}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                <div className="mt-4">
-                  <TablePagination
-                    currentPage={paymentsPage}
-                    totalPages={Math.ceil(paymentsTotal / paymentsPageSize)}
-                    totalItems={paymentsTotal}
-                    pageSize={paymentsPageSize}
-                    onPageChange={setPaymentsPage}
-                    onPageSizeChange={() => {}}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

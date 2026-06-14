@@ -86,11 +86,15 @@ export function ReplaceAssignmentModal({ assignmentId, currentEmployeeName, allE
                 <SelectValue placeholder="Select an employee" />
               </SelectTrigger>
               <SelectContent>
-                {allEmployees.map((emp) => (
-                  <SelectItem key={emp.id} value={emp.id}>
-                    {emp.users?.full_name} ({emp.employee_code})
-                  </SelectItem>
-                ))}
+                {allEmployees.map((emp) => {
+                  const fullName = Array.isArray(emp.users) ? emp.users[0]?.full_name : emp.users?.full_name;
+                  const displayLabel = `${fullName || 'Unknown'} (${emp.employee_code})`;
+                  return (
+                    <SelectItem key={emp.id} value={emp.id} label={displayLabel}>
+                      {displayLabel}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

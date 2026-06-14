@@ -26,7 +26,7 @@ export async function getShiftSchedules(options?: {
     .select(`
       *, 
       branches(name),
-      assignments(id, assignment_status, attendance(attendance_status), payments(payment_status))
+      assignments(id, assignment_status, payment_snapshot, attendance(attendance_status), payments(payment_status, amount))
     `, { count: 'exact' })
     .eq('is_active', true);
 
@@ -282,6 +282,7 @@ export async function createBulkSpreadsheetShifts(rows: {
   date: string;
   shiftType: string;
   notes?: string;
+  paymentAmount?: number;
 }[]) {
   const session = await getSession();
   if (!session || session.role === 'employee') {
@@ -356,17 +357,20 @@ export async function createBulkSpreadsheetShifts(rows: {
       
     if (!existingAssignment) {
       // We need to insert the assignment
-      // Get Payment Rate based on branch_id and shift_type
-      const { data: rates } = await supabase
-        .from('branch_pay_rates')
-        .select('rate, effective_from, effective_to')
-        .eq('branch_id', row.branchId)
-        .eq('shift_type', row.shiftType)
-        .lte('effective_from', row.date)
-        .order('effective_from', { ascending: false });
+      let rate = row.paymentAmount;
+      if (rate === undefined || rate === null || isNaN(rate)) {
+        // Get Payment Rate based on branch_id and shift_type
+        const { data: rates } = await supabase
+          .from('branch_pay_rates')
+          .select('rate, effective_from, effective_to')
+          .eq('branch_id', row.branchId)
+          .eq('shift_type', row.shiftType)
+          .lte('effective_from', row.date)
+          .order('effective_from', { ascending: false });
 
-      const activeRateData = rates?.find(r => !r.effective_to || r.effective_to >= row.date);
-      const rate = activeRateData ? activeRateData.rate : 0;
+        const activeRateData = rates?.find(r => !r.effective_to || r.effective_to >= row.date);
+        rate = activeRateData ? activeRateData.rate : 0;
+      }
       
       const { data: newAssignment } = await supabase
         .from('assignments')
@@ -387,6 +391,14 @@ export async function createBulkSpreadsheetShifts(rows: {
           new_employee_id: row.employeeId,
           action_by: session.userId,
           reason: 'Spreadsheet bulk assignment'
+        }]);
+
+        // Sync with Admin Payment Page
+        await supabase.from('payments').insert([{
+          assignment_id: newAssignment.id,
+          amount: rate,
+          payment_status: 'not_requested',
+          created_by: session.userId
         }]);
       }
     }

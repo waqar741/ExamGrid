@@ -282,6 +282,15 @@ export async function bulkAssignEmployees(shiftScheduleId: string, employeeIds: 
       reason: 'Bulk assignment'
     }));
     await supabase.from('assignment_history').insert(historyInserts);
+
+    // Sync with Admin Payment Page
+    const paymentInserts = newAssignments.map(a => ({
+      assignment_id: a.id,
+      amount: rate,
+      payment_status: 'not_requested',
+      created_by: session.userId
+    }));
+    await supabase.from('payments').insert(paymentInserts);
   }
 
   revalidatePath('/dashboard/assignments');
@@ -340,6 +349,14 @@ export async function replaceAssignment(assignmentId: string, newEmployeeId: str
     new_employee_id: newEmployeeId,
     reason,
     action_by: session.userId
+  }]);
+
+  // Sync with Admin Payment Page
+  await supabase.from('payments').insert([{
+    assignment_id: newAssignment.id,
+    amount: currentAssignment.payment_snapshot,
+    payment_status: 'not_requested',
+    created_by: session.userId
   }]);
 
   revalidatePath('/dashboard/assignments');
