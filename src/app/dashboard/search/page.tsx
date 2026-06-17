@@ -19,7 +19,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const query = (resolvedParams.q as string) || '';
   const results = await globalSearch(query) as any;
 
-  const totalResults = results.employees.length + results.branches.length + results.events.length;
+  const totalResults = results.employees.length + results.branches.length + results.shiftSchedules.length;
 
   return (
     <div className="space-y-6">
@@ -72,21 +72,21 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             </div>
           )}
 
-          {/* Events Results */}
-          {results.events.length > 0 && (
+          {/* Shift Schedules Results */}
+          {results.shiftSchedules.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-lg font-semibold border-b pb-2">Events ({results.events.length})</h3>
+              <h3 className="text-lg font-semibold border-b pb-2">Shift Schedules ({results.shiftSchedules.length})</h3>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {results.events.map((ev: any) => (
+                {results.shiftSchedules.map((ev: any) => (
                   <div key={ev.id} className="rounded-xl border bg-card p-5 shadow-sm space-y-2">
                     <h4 className="font-semibold text-primary">{ev.branches?.name}</h4>
                     <p className="text-sm text-muted-foreground">
-                      Date: {format(new Date(ev.event_date), 'MMM d, yyyy')}
+                      Date: {format(new Date(ev.shift_date), 'MMM d, yyyy')} • {ev.shift_type?.replace(/_/g, ' ')}
                     </p>
                     {ev.notes && <p className="text-sm text-muted-foreground line-clamp-2">{ev.notes}</p>}
                     <div className="pt-2">
-                      <Link href={`/dashboard/events/${ev.id}`}>
-                        <Button variant="outline" size="sm">View Event</Button>
+                      <Link href={`/dashboard/shift-schedule/${ev.id}`}>
+                        <Button variant="outline" size="sm">View Schedule</Button>
                       </Link>
                     </div>
                   </div>

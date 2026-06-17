@@ -97,6 +97,10 @@ export function PaymentReviewModal({ open, onOpenChange, paymentId, onActionComp
   const [paidDate, setPaidDate] = useState(new Date().toISOString().split('T')[0]);
   const [paidRemarks, setPaidRemarks] = useState('');
 
+  // Delete mode
+  const [deleting, setDeleting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+
   useEffect(() => {
     if (open && paymentId) {
       fetchDetail();
@@ -146,11 +150,12 @@ export function PaymentReviewModal({ open, onOpenChange, paymentId, onActionComp
           setEditing(false);
           break;
         case 'delete':
-          if (!confirm('Are you sure you want to delete this payment request? This cannot be undone.')) {
+          if (!deletePassword) {
+            setError('Password is required to delete');
             setActionLoading(null);
             return;
           }
-          res = await deletePayment(paymentId);
+          res = await deletePayment(paymentId, deletePassword);
           if (!res?.error) {
             onOpenChange(false);
             onActionComplete?.();
@@ -179,6 +184,8 @@ export function PaymentReviewModal({ open, onOpenChange, paymentId, onActionComp
     setEditing(false);
     setRejecting(false);
     setMarkingPaid(false);
+    setDeleting(false);
+    setDeletePassword('');
   };
 
   return (
@@ -289,24 +296,26 @@ export function PaymentReviewModal({ open, onOpenChange, paymentId, onActionComp
               )}
             </div>
 
-            {/* 6-Hour Edit Window Indicator */}
-            <div className={`flex items-center gap-2 p-3 rounded-lg border text-xs font-medium ${
-              detail.canEdit
-                ? 'bg-blue-50/50 border-blue-200 text-blue-700'
-                : 'bg-slate-50 border-slate-200 text-slate-500'
-            }`}>
-              {detail.canEdit ? (
-                <>
-                  <Clock className="h-3.5 w-3.5" />
-                  Edit window: {detail.editTimeRemaining}
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  Edit Window Expired
-                </>
-              )}
-            </div>
+            {/* 1-Week Edit Window Indicator (hidden for paid payments) */}
+            {detail.status !== 'paid' && (
+              <div className={`flex items-center gap-2 p-3 rounded-lg border text-xs font-medium ${
+                detail.canEdit
+                  ? 'bg-blue-50/50 border-blue-200 text-blue-700'
+                  : 'bg-slate-50 border-slate-200 text-slate-500'
+              }`}>
+                {detail.canEdit ? (
+                  <>
+                    <Clock className="h-3.5 w-3.5" />
+                    Edit window: {detail.editTimeRemaining}
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Edit Window Expired
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Reject Reason Input */}
             {rejecting && (
@@ -369,8 +378,36 @@ export function PaymentReviewModal({ open, onOpenChange, paymentId, onActionComp
               </div>
             )}
 
+            {/* Delete Input */}
+            {deleting && (
+              <div className="space-y-3 p-4 border rounded-lg bg-red-50/30 border-red-200">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-red-700">Admin Password Required</Label>
+                  <Input
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    placeholder="Enter your password to confirm deletion"
+                    className="w-full text-sm border-red-200 focus-visible:ring-red-500"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button variant="outline" size="sm" onClick={() => setDeleting(false)}>Cancel</Button>
+                  <Button
+                    size="sm"
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    onClick={() => handleAction('delete')}
+                    disabled={actionLoading === 'delete' || !deletePassword}
+                  >
+                    {actionLoading === 'delete' ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Trash2 className="h-3.5 w-3.5 mr-1" />}
+                    Confirm Delete
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
-            {!rejecting && !markingPaid && (
+            {!rejecting && !markingPaid && !deleting && (
               <div className="flex flex-wrap gap-2 pt-2 border-t">
                 {/* Accept — only for requested */}
                 {detail.status === 'requested' && (
@@ -399,8 +436,8 @@ export function PaymentReviewModal({ open, onOpenChange, paymentId, onActionComp
                   </Button>
                 )}
 
-                {/* Mark Paid — for approved and requested */}
-                {(detail.status === 'approved' || detail.status === 'requested') && (
+                {/* Mark Paid — for approved, requested, and not_requested */}
+                {(detail.status === 'approved' || detail.status === 'requested' || detail.status === 'not_requested') && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -426,16 +463,16 @@ export function PaymentReviewModal({ open, onOpenChange, paymentId, onActionComp
                   </Button>
                 )}
 
-                {/* Delete — if within edit window */}
-                {detail.canEdit && (
+                {/* Delete — always allowed but requires password */}
+                {detail.status !== 'paid' && (
                   <Button
                     size="sm"
                     variant="outline"
                     className="border-red-200 text-red-600 hover:bg-red-50"
-                    onClick={() => handleAction('delete')}
+                    onClick={() => { resetModes(); setDeleting(true); }}
                     disabled={!!actionLoading}
                   >
-                    {actionLoading === 'delete' ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Trash2 className="h-3.5 w-3.5 mr-1" />}
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
                     Delete
                   </Button>
                 )}

@@ -42,13 +42,17 @@ export function Header({ email, role, fullName }: HeaderProps) {
   useEffect(() => {
     if (debouncedGlobalSearch.trim()) {
       router.push(`/dashboard/search?q=${encodeURIComponent(debouncedGlobalSearch.trim())}`);
+    } else if (debouncedGlobalSearch === '' && pathname === '/dashboard/search') {
+      router.push('/dashboard');
     }
-  }, [debouncedGlobalSearch, router]);
+  }, [debouncedGlobalSearch, router, pathname]);
 
   const onSubmitSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       router.push(`/dashboard/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      router.push('/dashboard');
     }
   };
 

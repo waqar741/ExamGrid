@@ -35,18 +35,18 @@ export async function globalSearch(query: string) {
     .from('branches')
     .select('*')
     .eq('is_active', true)
-    .or(`name.ilike.%${cleanQuery}%,description.ilike.%${cleanQuery}%`);
+    .or(`name.ilike."%${cleanQuery}%",description.ilike."%${cleanQuery}%"`);
 
   // 3. Search shift schedules
   const { data: shiftSchedules } = await supabase
     .from('shift_schedules')
-    .select('id, shift_date, notes, branches(name), shift_templates(name)')
+    .select('id, shift_date, shift_type, notes, branches(name)')
     .eq('is_active', true) as any;
 
   const filteredShiftSchedules = shiftSchedules?.filter((ev: any) => 
-    ev.shift_date.toLowerCase().includes(cleanQuery) ||
-    ev.branches?.name.toLowerCase().includes(cleanQuery) ||
-    ev.shift_templates?.name.toLowerCase().includes(cleanQuery) ||
+    ev.shift_date?.toLowerCase().includes(cleanQuery) ||
+    ev.shift_type?.toLowerCase().includes(cleanQuery) ||
+    ev.branches?.name?.toLowerCase().includes(cleanQuery) ||
     (ev.notes && ev.notes.toLowerCase().includes(cleanQuery))
   ) || [];
 

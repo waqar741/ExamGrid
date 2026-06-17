@@ -148,7 +148,6 @@ export function ShiftScheduleClient({
                 <th className="px-6 py-3 font-medium text-center">Assigned Staff</th>
                 <th className="px-6 py-3 font-medium text-center">Remaining Needed</th>
                 <th className="px-6 py-3 font-medium text-center">Attendance</th>
-                <th className="px-6 py-3 font-medium text-center">Payments</th>
                 <th className="px-6 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
@@ -206,11 +205,6 @@ export function ShiftScheduleClient({
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <Badge variant="outline">
                           {shift.assignments?.filter((a: any) => a.attendance?.some((at: any) => at.attendance_status === 'present' || at.attendance_status === 'late')).length || 0} / {shift.assignments?.filter((a: any) => a.assignment_status === 'assigned' || a.assignment_status === 'completed').length || 0}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <Badge variant="outline" className="bg-slate-50">
-                          ₹{shift.assignments?.reduce((sum: number, a: any) => sum + (a.payments?.filter((p: any) => p.payment_status === 'paid').reduce((pSum: number, p: any) => pSum + (Number(p.amount) || 0), 0) || 0), 0)} Paid
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">

@@ -8,6 +8,7 @@ import { EmployeePaymentsClient } from './employee-payments-client';
 interface PageProps {
   searchParams: Promise<{
     page?: string;
+    historyPage?: string;
     pageSize?: string;
     search?: string;
     dateFrom?: string;
@@ -60,9 +61,12 @@ export default async function PaymentsPage({ searchParams }: PageProps) {
   }
 
   // Admin / Super Admin view
+  const historyPage = parseInt(params.historyPage || '1', 10);
+
   const [paymentResult, branches] = await Promise.all([
     getAdminPaymentRequests({
       page,
+      historyPage,
       pageSize,
       search,
       dateFrom: dateFrom || undefined,
@@ -77,8 +81,11 @@ export default async function PaymentsPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       <PaymentsClient
         initialData={paymentResult.data}
-        totalCount={paymentResult.total}
+        historyData={paymentResult.historyData}
+        totalCount={paymentResult.activeTotal}
+        historyTotal={paymentResult.historyTotal}
         currentPage={page}
+        historyPage={historyPage}
         pageSize={pageSize}
         summary={paymentResult.summary}
         branches={branches}

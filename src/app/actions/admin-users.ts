@@ -27,7 +27,7 @@ export async function getAdmins(options?: {
     .order('created_at', { ascending: false });
 
   if (search) {
-    queryBuilder = queryBuilder.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
+    queryBuilder = queryBuilder.or(`full_name.ilike."%${search}%",email.ilike."%${search}%"`);
   }
 
   const from = (page - 1) * pageSize;

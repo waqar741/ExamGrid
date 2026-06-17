@@ -62,7 +62,7 @@ export function AttendanceClient({
     const s = searchTerm.toLowerCase();
     const empName = assignment.employees?.users?.full_name?.toLowerCase() || '';
     const branchName = assignment.shift_schedules?.branches?.name?.toLowerCase() || '';
-    const shiftName = assignment.shift_schedules?.shift_templates?.name?.toLowerCase() || '';
+    const shiftName = assignment.shift_schedules?.shift_type?.toLowerCase() || '';
     return empName.includes(s) || branchName.includes(s) || shiftName.includes(s);
   });
 
@@ -88,13 +88,13 @@ export function AttendanceClient({
               <TableHead>Branch</TableHead>
               <TableHead>Employee</TableHead>
               <TableHead>Status</TableHead>
-              {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isAdmin ? 5 : 4} className="text-center h-32 text-muted-foreground text-sm">
+                <TableCell colSpan={5} className="text-center h-32 text-muted-foreground text-sm">
                   No attendance records to process.
                 </TableCell>
               </TableRow>
@@ -108,7 +108,7 @@ export function AttendanceClient({
                         <span className="font-medium text-slate-900 text-sm">
                           {assignment.shift_schedules?.shift_date && format(new Date(assignment.shift_schedules.shift_date), 'MMM d, yyyy')}
                         </span>
-                        <span className="text-xs text-slate-500 mt-0.5">{assignment.shift_schedules?.shift_templates?.name}</span>
+                        <span className="text-xs text-slate-500 mt-0.5">{assignment.shift_schedules?.shift_type?.replace(/_/g, ' ')}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -129,11 +129,9 @@ export function AttendanceClient({
                         {attStatus}
                       </Badge>
                     </TableCell>
-                    {isAdmin && (
-                      <TableCell className="text-right">
-                        <MarkAttendanceAction assignmentId={assignment.id} currentStatus={attStatus} />
-                      </TableCell>
-                    )}
+                    <TableCell className="text-right">
+                      <MarkAttendanceAction assignmentId={assignment.id} currentStatus={attStatus} />
+                    </TableCell>
                   </TableRow>
                 );
               })
@@ -159,7 +157,7 @@ export function AttendanceClient({
                       {assignment.employees?.users?.full_name}
                     </span>
                     <span className="text-xs text-slate-500 mt-0.5">
-                      {assignment.shift_schedules?.branches?.name} • {assignment.shift_schedules?.shift_templates?.name}
+                      {assignment.shift_schedules?.branches?.name} • {assignment.shift_schedules?.shift_type?.replace(/_/g, ' ')}
                     </span>
                   </div>
                   <div className="flex flex-col items-end">
@@ -179,11 +177,9 @@ export function AttendanceClient({
                     <CalendarClock className="w-3 h-3" />
                     {assignment.shift_schedules?.shift_date && format(new Date(assignment.shift_schedules.shift_date), 'MMM d, yyyy')}
                   </div>
-                  {isAdmin && (
-                    <div className="scale-90 origin-right">
-                      <MarkAttendanceAction assignmentId={assignment.id} currentStatus={attStatus} />
-                    </div>
-                  )}
+                  <div className="scale-90 origin-right">
+                    <MarkAttendanceAction assignmentId={assignment.id} currentStatus={attStatus} />
+                  </div>
                 </div>
               </div>
             );

@@ -60,8 +60,8 @@ export async function getShiftSchedules(options?: {
     }
     
     // Search directly in shift_type and notes
-    orConditions.push(`shift_type.ilike.%${search}%`);
-    orConditions.push(`notes.ilike.%${search}%`);
+    orConditions.push(`shift_type.ilike."%${search}%"`);
+    orConditions.push(`notes.ilike."%${search}%"`);
 
     queryBuilder = queryBuilder.or(orConditions.join(','));
   }

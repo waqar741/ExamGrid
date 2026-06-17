@@ -26,7 +26,7 @@ export async function getBranches(options?: {
     .eq('is_active', true);
 
   if (search) {
-    queryBuilder = queryBuilder.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+    queryBuilder = queryBuilder.or(`name.ilike."%${search}%",description.ilike."%${search}%"`);
   }
 
   queryBuilder = queryBuilder.order(sortBy, { ascending: sortOrder === 'asc' });

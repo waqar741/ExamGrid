@@ -2,6 +2,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { getSession } from '@/lib/auth';
+import { verifyCurrentPassword } from '@/app/actions/auth';
 import { revalidatePath } from 'next/cache';
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -71,16 +72,27 @@ function getEditTimeInfo(createdAt: string): { canEdit: boolean; remaining: stri
   const created = new Date(createdAt);
   const now = new Date();
   const diffMs = now.getTime() - created.getTime();
-  const sixHoursMs = 6 * 60 * 60 * 1000;
+  const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
 
-  if (diffMs > sixHoursMs) {
+  if (diffMs > oneWeekMs) {
     return { canEdit: false, remaining: null };
   }
 
-  const remainingMs = sixHoursMs - diffMs;
-  const hours = Math.floor(remainingMs / (1000 * 60 * 60));
-  const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
-  return { canEdit: true, remaining: `${hours}h ${minutes}m remaining` };
+  const remainingMs = oneWeekMs - diffMs;
+  const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  return { canEdit: true, remaining: `${days}d ${hours}h remaining` };
+}
+
+async function cleanupExpiredPaymentRequests() {
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  
+  await supabase
+    .from('payments')
+    .delete()
+    .eq('payment_status', 'requested')
+    .lt('requested_at', sevenDaysAgo.toISOString());
 }
 
 // ─── Employee: Get Payments ──────────────────────────────────────────
@@ -92,6 +104,8 @@ export async function getEmployeePayments(options?: {
   dateTo?: string;
   status?: string;
 }) {
+  await cleanupExpiredPaymentRequests();
+  
   const session = await getSession();
   if (!session) {
     return { data: [] as EmployeePaymentItem[], total: 0, summary: { totalEarned: 0, totalPaid: 0, totalPending: 0, totalShifts: 0 } as EmployeePaymentSummary };
@@ -132,15 +146,17 @@ export async function getEmployeePayments(options?: {
   }
 
   let allItems: EmployeePaymentItem[] = (data || []).map((a: any) => {
-    const attStatus = a.attendance?.[0]?.attendance_status;
-    const isPresent = attStatus === 'present' || attStatus === 'late';
+    const attStatus = a.attendance?.[0]?.attendance_status || 'not_marked';
+    const isAbsent = attStatus === 'absent';
     const paymentRate = Number(a.payment_snapshot) || 0;
     const payment = a.payments?.[0];
-    const amount = payment ? Number(payment.amount) : (isPresent ? paymentRate : 0);
+    
+    // Amount is the actual payment amount if exists, or the rate if not absent
+    const amount = payment ? Number(payment.amount) : (isAbsent ? 0 : paymentRate);
 
     let status: EmployeePaymentItem['status'];
-    if (!isPresent) {
-      status = attStatus === 'absent' ? 'absent' : 'not_marked';
+    if (isAbsent) {
+      status = 'absent';
     } else if (!payment) {
       status = 'not_requested';
     } else {
@@ -173,10 +189,10 @@ export async function getEmployeePayments(options?: {
 
   // Summary from ALL filtered items (before pagination)
   const summary: EmployeePaymentSummary = {
-    totalEarned: allItems.filter(i => i.status !== 'absent' && i.status !== 'not_marked').reduce((sum, i) => sum + i.amount, 0),
+    totalEarned: allItems.filter(i => i.status !== 'absent').reduce((sum, i) => sum + i.amount, 0),
     totalPaid: allItems.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0),
     totalPending: allItems.filter(i => i.status === 'requested' || i.status === 'approved' || i.status === 'not_requested').reduce((sum, i) => sum + i.amount, 0),
-    totalShifts: allItems.filter(i => i.attendance === 'present' || i.attendance === 'late').length,
+    totalShifts: allItems.filter(i => i.status !== 'absent').length,
   };
 
   // Paginate
@@ -214,10 +230,10 @@ export async function requestPayment(assignmentId: string, remarks?: string) {
     return { error: 'Unauthorized — you can only request payment for your own shifts' };
   }
 
-  // Check attendance — must be present or late
+  // Check attendance — must not be absent
   const attStatus = (assignment.attendance as any[])?.[0]?.attendance_status;
-  if (attStatus !== 'present' && attStatus !== 'late') {
-    return { error: 'Payment can only be requested for shifts where you were marked Present or Late' };
+  if (attStatus === 'absent') {
+    return { error: 'Payment cannot be requested for shifts where you were marked Absent' };
   }
 
   const existingPayment = (assignment.payments as any[])?.[0];
@@ -290,6 +306,7 @@ export async function requestPayment(assignmentId: string, remarks?: string) {
 
 export async function getAdminPaymentRequests(options?: {
   page?: number;
+  historyPage?: number;
   pageSize?: number;
   search?: string;
   dateFrom?: string;
@@ -297,9 +314,11 @@ export async function getAdminPaymentRequests(options?: {
   branchId?: string;
   status?: string;
 }) {
+  await cleanupExpiredPaymentRequests();
+
   const session = await getSession();
   if (!session || session.role === 'employee') {
-    return { data: [] as AdminPaymentRequest[], total: 0, summary: { totalRequested: 0, totalApproved: 0, totalPaid: 0, pendingReviews: 0, requestedCount: 0, approvedCount: 0, paidCount: 0 } as AdminPaymentSummary };
+    return { data: [] as AdminPaymentRequest[], historyData: [] as AdminPaymentRequest[], activeTotal: 0, historyTotal: 0, summary: { totalRequested: 0, totalApproved: 0, totalPaid: 0, pendingReviews: 0, requestedCount: 0, approvedCount: 0, paidCount: 0 } as AdminPaymentSummary };
   }
 
   const page = options?.page || 1;
@@ -346,7 +365,7 @@ export async function getAdminPaymentRequests(options?: {
 
   if (error) {
     console.error('Error fetching admin payment requests:', error);
-    return { data: [] as AdminPaymentRequest[], total: 0, summary: { totalRequested: 0, totalApproved: 0, totalPaid: 0, pendingReviews: 0, requestedCount: 0, approvedCount: 0, paidCount: 0 } as AdminPaymentSummary };
+    return { data: [] as AdminPaymentRequest[], historyData: [] as AdminPaymentRequest[], activeTotal: 0, historyTotal: 0, summary: { totalRequested: 0, totalApproved: 0, totalPaid: 0, pendingReviews: 0, requestedCount: 0, approvedCount: 0, paidCount: 0 } as AdminPaymentSummary };
   }
 
   let allItems: AdminPaymentRequest[] = (data || []).map((p: any) => {
@@ -403,12 +422,19 @@ export async function getAdminPaymentRequests(options?: {
     paidCount: allItems.filter(i => i.status === 'paid').length,
   };
 
-  // Paginate
-  const total = allItems.length;
-  const from = (page - 1) * pageSize;
-  const paginated = allItems.slice(from, from + pageSize);
+  const activeItems = allItems.filter(i => i.status !== 'paid');
+  const historyItems = allItems.filter(i => i.status === 'paid');
 
-  return { data: paginated, total, summary };
+  const activeTotal = activeItems.length;
+  const historyTotal = historyItems.length;
+
+  const activeFrom = ((options?.page || 1) - 1) * pageSize;
+  const activePaginated = activeItems.slice(activeFrom, activeFrom + pageSize);
+
+  const historyFrom = ((options?.historyPage || 1) - 1) * pageSize;
+  const historyPaginated = historyItems.slice(historyFrom, historyFrom + pageSize);
+
+  return { data: activePaginated, historyData: historyPaginated, activeTotal, historyTotal, summary };
 }
 
 // ─── Admin: Get Payment Detail (for review modal) ────────────────────
@@ -652,10 +678,19 @@ export async function updatePayment(paymentId: string, amount: number, remarks?:
 
 // ─── Admin: Delete Payment ──────────────────────────────────────────
 
-export async function deletePayment(paymentId: string) {
+export async function deletePayment(paymentId: string, password?: string) {
   const session = await getSession();
-  if (!session || session.role === 'employee') {
+  if (!session || session.role === 'employee' || !session.email) {
     return { error: 'Unauthorized' };
+  }
+
+  if (!password) {
+    return { error: 'Password is required to delete a payment' };
+  }
+
+  const verifyRes = await verifyCurrentPassword(password);
+  if (verifyRes.error) {
+    return { error: 'Incorrect password. Deletion denied.' };
   }
 
   const { data: payment } = await supabase
@@ -666,11 +701,11 @@ export async function deletePayment(paymentId: string) {
 
   if (!payment) return { error: 'Payment not found' };
 
-  // 6-hour edit window check
-  const editInfo = getEditTimeInfo(payment.created_at);
-  if (!editInfo.canEdit) {
-    return { error: 'Edit window expired — payments can only be deleted within 6 hours of creation' };
-  }
+  // Comment out the 6-hour edit window check since we use password now
+  // const editInfo = getEditTimeInfo(payment.created_at);
+  // if (!editInfo.canEdit) {
+  //   return { error: 'Edit window expired — payments can only be deleted within 6 hours of creation' };
+  // }
 
   const { error } = await supabase
     .from('payments')

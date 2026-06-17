@@ -30,13 +30,17 @@ import {
   Eye,
   FileSearch,
   AlertCircle,
+  History,
 } from 'lucide-react';
 import type { AdminPaymentRequest, AdminPaymentSummary } from '@/app/actions/payments';
 
 interface PaymentsClientProps {
   initialData: AdminPaymentRequest[];
+  historyData: AdminPaymentRequest[];
   totalCount: number;
+  historyTotal: number;
   currentPage: number;
+  historyPage: number;
   pageSize: number;
   summary: AdminPaymentSummary;
   branches: any[];
@@ -77,8 +81,11 @@ function statusBadge(status: string) {
 
 export function PaymentsClient({
   initialData,
+  historyData,
   totalCount,
+  historyTotal,
   currentPage,
+  historyPage,
   pageSize,
   summary,
   branches,
@@ -118,6 +125,12 @@ export function PaymentsClient({
   const handlePageChange = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('page', String(page));
+    router.push(`/dashboard/payments?${params.toString()}`);
+  };
+
+  const handleHistoryPageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('historyPage', String(page));
     router.push(`/dashboard/payments?${params.toString()}`);
   };
 
@@ -337,6 +350,119 @@ export function PaymentsClient({
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
       />
+
+      {/* Payment History Section */}
+      <div className="pt-8">
+        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <History className="h-5 w-5" />
+          Payment History (Paid)
+        </h3>
+        
+        {/* History Desktop Table */}
+        <div className="hidden md:block rounded-xl border bg-card shadow-sm overflow-hidden">
+          <Table>
+            <TableHeader className="bg-emerald-50/60">
+              <TableRow>
+                <TableHead className="text-xs">Employee</TableHead>
+                <TableHead className="text-xs">Date</TableHead>
+                <TableHead className="text-xs">Branch</TableHead>
+                <TableHead className="text-xs">Shift</TableHead>
+                <TableHead className="text-xs">Payment Date</TableHead>
+                <TableHead className="text-xs text-right">Amount</TableHead>
+                <TableHead className="text-xs text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {historyData?.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center h-24 text-muted-foreground text-sm">
+                    No payment history found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                historyData?.map((p) => (
+                  <TableRow key={p.paymentId} className="hover:bg-muted/10">
+                    <TableCell className="text-xs font-medium">{p.employeeName}</TableCell>
+                    <TableCell className="text-xs">
+                      {p.date ? format(new Date(p.date), 'd MMM yyyy') : '-'}
+                    </TableCell>
+                    <TableCell className="text-xs">{p.branch}</TableCell>
+                    <TableCell className="text-xs">{p.shiftType}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {p.paymentDate ? format(new Date(p.paymentDate), 'd MMM yyyy') : '-'}
+                    </TableCell>
+                    <TableCell className="text-xs text-right font-bold text-emerald-600">₹{p.amount.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs px-3"
+                        onClick={() => openReview(p.paymentId)}
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* History Mobile Cards */}
+        <div className="grid grid-cols-1 gap-3 md:hidden mt-3">
+          {historyData?.length === 0 ? (
+            <div className="p-6 text-center text-muted-foreground border rounded-xl bg-card text-sm shadow-sm">
+              No payment history found.
+            </div>
+          ) : (
+            historyData?.map((p) => (
+              <div
+                key={p.paymentId}
+                className="flex flex-col gap-3 p-4 border rounded-xl bg-card text-xs shadow-sm cursor-pointer hover:bg-muted/5 active:bg-muted/10 transition-colors"
+                onClick={() => openReview(p.paymentId)}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-semibold text-sm">{p.employeeName}</p>
+                    <p className="text-muted-foreground">Shift: {p.date ? format(new Date(p.date), 'd MMM yyyy') : '-'}</p>
+                  </div>
+                  <Badge className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200">Paid on {p.paymentDate ? format(new Date(p.paymentDate), 'd MMM') : '-'}</Badge>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-muted-foreground text-[10px]">Branch</p>
+                    <p className="font-medium">{p.branch}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-[10px]">Shift</p>
+                    <p className="font-medium">{p.shiftType}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-[10px]">Amount</p>
+                    <p className="font-bold text-emerald-600">₹{p.amount.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* History Pagination */}
+        {historyTotal > 0 && (
+          <div className="mt-4">
+            <TablePagination
+              currentPage={historyPage}
+              totalPages={Math.ceil(historyTotal / pageSize)}
+              totalItems={historyTotal}
+              pageSize={pageSize}
+              onPageChange={handleHistoryPageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Review Modal */}
       {selectedPaymentId && (

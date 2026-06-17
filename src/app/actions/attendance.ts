@@ -24,14 +24,37 @@ export async function getAssignmentsForAttendance(options?: {
     .from('assignments')
     .select(`
       *,
-      shift_schedules (shift_date, branches (name), shift_templates (name)),
+      shift_schedules (shift_date, shift_type, branches (name)),
       employees (users (full_name)),
       attendance (*)
     `, { count: 'exact' })
     .neq('assignment_status', 'replaced');
 
   if (session.role === 'employee') {
-    queryBuilder = queryBuilder.eq('employee_id', session.userId);
+    const { data: empData } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('user_id', session.userId)
+      .single();
+    
+    if (empData) {
+      queryBuilder = queryBuilder.eq('employee_id', empData.id);
+    } else {
+      // If no employee record found, return empty
+      return { data: [], total: 0 };
+    }
+  }
+
+  // Filter out assignments that have a 'paid' payment
+  const { data: paidPayments } = await supabase
+    .from('payments')
+    .select('assignment_id')
+    .eq('payment_status', 'paid');
+  
+  const paidIds = paidPayments?.map(p => p.assignment_id) || [];
+  if (paidIds.length > 0) {
+    // Use up to 200 to prevent URI Too Long errors in standard environments
+    queryBuilder = queryBuilder.not('id', 'in', `(${paidIds.slice(0, 200).join(',')})`);
   }
 
   const from = (page - 1) * pageSize;
@@ -54,7 +77,7 @@ export async function getAssignmentsForAttendance(options?: {
     finalData = data.filter((item: any) => {
       const empName = item.employees?.users?.full_name?.toLowerCase() || '';
       const branchName = item.shift_schedules?.branches?.name?.toLowerCase() || '';
-      const shiftName = item.shift_schedules?.shift_templates?.name?.toLowerCase() || '';
+      const shiftName = item.shift_schedules?.shift_type?.toLowerCase() || '';
       return empName.includes(cleanSearch) || branchName.includes(cleanSearch) || shiftName.includes(cleanSearch);
     });
     finalCount = finalData.length;
@@ -65,8 +88,27 @@ export async function getAssignmentsForAttendance(options?: {
 
 export async function markAttendance(assignmentId: string, status: string) {
   const session = await getSession();
-  if (!session || session.role === 'employee') {
+  if (!session) {
     return { error: 'Unauthorized' };
+  }
+
+  // If employee, verify they own the assignment
+  if (session.role === 'employee') {
+    const { data: empData } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('user_id', session.userId)
+      .single();
+
+    const { data: assignment } = await supabase
+      .from('assignments')
+      .select('employee_id')
+      .eq('id', assignmentId)
+      .single();
+    
+    if (!assignment || !empData || assignment.employee_id !== empData.id) {
+      return { error: 'Unauthorized to mark attendance for this shift' };
+    }
   }
 
   // Check if attendance already exists
@@ -117,27 +159,10 @@ export async function markAttendance(assignmentId: string, status: string) {
         .from('assignments')
         .update({ assignment_status: 'completed' })
         .eq('id', assignmentId);
-        
-      // Also trigger payment creation for completed assignments (if not exists)
-      const { data: assignment } = await supabase
-        .from('assignments')
-        .select('payment_snapshot')
-        .eq('id', assignmentId)
-        .single();
-        
-      if (assignment && assignment.payment_snapshot) {
-        await supabase
-          .from('payments')
-          .insert([{
-            assignment_id: assignmentId,
-            amount: assignment.payment_snapshot,
-            status: 'pending'
-          }]);
-      }
     } else if (status === 'absent') {
        await supabase
         .from('assignments')
-        .update({ assignment_status: 'assigned' }) // or cancelled/absent if added to enum
+        .update({ assignment_status: 'assigned' })
         .eq('id', assignmentId);
     }
   }

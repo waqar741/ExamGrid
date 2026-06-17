@@ -30,10 +30,10 @@ export async function getEmployees(options?: {
     const { data: matchedUsers } = await supabase
       .from('users')
       .select('id')
-      .or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
+      .or(`full_name.ilike."%${search}%",email.ilike."%${search}%"`);
     const matchedUserIds = (matchedUsers || []).map((u: any) => u.id);
 
-    let orCondition = `employee_code.ilike.%${search}%,phone.ilike.%${search}%`;
+    let orCondition = `employee_code.ilike."%${search}%",phone.ilike."%${search}%"`;
     if (matchedUserIds.length > 0) {
       orCondition += `,user_id.in.(${matchedUserIds.join(',')})`;
     }
